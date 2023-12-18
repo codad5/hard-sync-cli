@@ -1,5 +1,6 @@
 mod app;
 mod libs;
+mod modules;
 
 use app::start;
 use libs::logger;

@@ -1,4 +1,6 @@
-use std::path::{PathBuf, Component, Path, self};
+use crate::modules::transaction::Transaction;
+
+use std::{path::{PathBuf, Component, Path, self}, time::{SystemTime, UNIX_EPOCH}};
 
 use log::error;
 
@@ -67,4 +69,17 @@ pub fn prepare_path_initalization(path: &PathBuf)  {
     // create .hard-sync directory and all necessary files
     std::fs::create_dir(path.join(".hard-sync")).unwrap();
     
+}
+
+pub fn get_transaction(base: String, target: String) -> Transaction {
+    Transaction::new(base, target)
+}
+
+pub fn system_time_to_string(system_time: SystemTime) -> String {
+    if let Ok(duration) = system_time.duration_since(UNIX_EPOCH) {
+        format!("{}", duration.as_secs())
+    } else {
+        // Handle the case where the system time is before the Unix epoch
+        "Invalid SystemTime".to_string()
+    }
 }
