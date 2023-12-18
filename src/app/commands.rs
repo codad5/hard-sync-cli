@@ -1,0 +1,55 @@
+use fli::Fli;
+use log::*;
+
+use crate::libs::helpers::{get_calling_path, print_error, resolve_path, is_already_initialized, perform_initialization};
+
+
+pub fn sync(x : &Fli){
+    println!("syncing");
+    let base = match x.get_arg_at(1) {
+        Some(x) => {
+            let mut x = x.to_string();
+            if x == "." {
+                x = get_calling_path();
+            }
+            resolve_path(x)
+        }
+        None => {
+            print_error("No base directory specified", true);
+            return;
+        }
+    };
+    let target = match x.get_arg_at(2) {
+        Some(x) => resolve_path(x),
+        None => {
+            print_error("No target directory specified", true);
+            return;
+        }
+    };
+
+    // check if paths exist
+    if !base.exists() {
+        print_error(format!("Base directory does not exist: {}", base.to_str().unwrap()).as_str(), true);
+        return;
+    }
+    if !target.exists() {
+        print_error(format!("Target directory does not exist: {}", target.to_str().unwrap()).as_str(), true);
+        return;
+    }
+
+    //check if hard sync is already initialized in both directories
+    if !perform_initialization(&base, x.is_passed("init".to_owned())) {
+        print_error(format!("Base directory is not initialized: {}", base.to_str().unwrap()).as_str(), true);
+        return;
+    }
+    
+    if !perform_initialization(&target, x.is_passed("init".to_owned())) {
+        print_error(format!("Target directory is not initialized: {}", target.to_str().unwrap()).as_str(), true);
+        return;
+    }
+    
+
+    info!("syncing {} to {}", base.to_str().unwrap(), target.to_str().unwrap());
+    
+
+}
