@@ -50,7 +50,6 @@ pub fn sync(x : &Fli){
     info!("syncing {} to {}", base.to_str().unwrap(), target.to_str().unwrap());
 
     let mut transaction = get_transaction(base.to_str().unwrap().to_string(), target.to_str().unwrap().to_string());
-
-    
+    transaction.save_base_lock_data();
 
 }
