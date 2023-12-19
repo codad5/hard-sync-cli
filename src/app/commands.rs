@@ -1,11 +1,10 @@
 use fli::Fli;
 use log::*;
 
-use crate::libs::helpers::{get_calling_path, print_error, resolve_path, is_already_initialized, perform_initialization};
+use crate::{libs::helpers::{get_calling_path, print_error, resolve_path, is_already_initialized, perform_initialization, get_transaction}, modules::transaction};
 
 
 pub fn sync(x : &Fli){
-    println!("syncing");
     let base = match x.get_arg_at(1) {
         Some(x) => {
             let mut x = x.to_string();
@@ -47,10 +46,11 @@ pub fn sync(x : &Fli){
         print_error(format!("Target directory is not initialized: {}", target.to_str().unwrap()).as_str(), true);
         return;
     }
-    
 
     info!("syncing {} to {}", base.to_str().unwrap(), target.to_str().unwrap());
-    
+
+    let mut transaction = get_transaction(base.to_str().unwrap().to_string(), target.to_str().unwrap().to_string());
+
     
 
 }

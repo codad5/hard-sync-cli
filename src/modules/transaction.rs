@@ -2,7 +2,7 @@ use std::{path::PathBuf, fs::{File, OpenOptions, self}, io::{BufReader, BufRead,
 use serde::{Serialize, Deserialize};
 use walkdir::WalkDir;
 
-use crate::libs::helpers::system_time_to_string;
+use crate::libs::helpers::{system_time_to_string, print_error};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct PathTransactionData {
@@ -23,30 +23,45 @@ pub struct Transaction {
 
 impl Transaction {
     pub fn new(base: String, target: String) -> Transaction {
-        Transaction {
+        let mut t = Transaction {
             base,
             target,
             base_data : Vec::new(),
             target_data : Vec::new(),
-        }
+        };
+        t.prepare();
+        return t;
+
+    }
+
+
+    pub fn prepare(&mut self) -> &mut Self {
+        self.load_base_data();
+        self.load_target_data();
+        return self;
     }
     
     pub fn resolve_lock(path: &PathBuf) -> File {
         // Construct the lock file path by appending ".hard-sync/hard-sync.lock" to the directory
         let lock_path = path.join(".hard-sync/hard-sync.lock");
 
+        
         // Create the parent directories if they don't exist
         if let Some(parent) = lock_path.parent() {
             std::fs::create_dir_all(parent).unwrap();
         }
-
+        
+        let mut file : File;
         // Create the lock file if it doesn't exist
         if !lock_path.exists() {
-            File::create(&lock_path).unwrap();
+            file = File::create(&lock_path).unwrap();
+        }
+        else {
+            file = OpenOptions::new().read(true).write(true).open(&lock_path).unwrap();
         }
 
-        // Open the lock file for writing
-        OpenOptions::new().write(true).open(&lock_path).unwrap()
+        return file;
+        
     }
 
     pub fn get_hard_sync_path(path: &PathBuf) -> PathBuf {
@@ -88,9 +103,12 @@ impl Transaction {
     fn get_lock_data(path: &PathBuf) -> Vec<PathTransactionData> {
         let mut data: Vec<PathTransactionData> = Vec::new();
         let lock_file = Transaction::resolve_lock(path);
+        // println!("lock_file: {:?}", lock_file);
         let reader = BufReader::new(lock_file);
         for line in reader.lines() {
+            println!("trad data: {:?}", line);
             let line = line.unwrap();
+            println!("line: {}", line);
             match serde_json::from_str::<PathTransactionData>(&line) {
                 Ok(d) => {
                     data.push(d.clone());
@@ -101,7 +119,10 @@ impl Transaction {
                         data.append(&mut path_data);
                     }
                 }
-                Err(err) => eprintln!("Error parsing line: {}", err),
+                Err(err) => {
+                    print_error(format!("Error deserializing data: {}", err).as_str(), false);
+                },
+            
             }
         }
         return data;
@@ -131,7 +152,7 @@ impl Transaction {
             writeln!(lock_file, "{}", match data {
                 Ok(d) => d,
                 Err(err) => {
-                    eprintln!("Error serializing data: {}", err);
+                    print_error(format!("Error serializing data: {}", err).as_str(), false);
                     String::new()
                 }
             }).unwrap();

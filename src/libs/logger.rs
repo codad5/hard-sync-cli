@@ -6,8 +6,7 @@ use std::io::Write;
 
 
 pub fn init_file_logger(){
-    let log_file: Box<File> = Box::new(File::create("hard-sync.log    ").expect("Can't create file"));
-    println!("init_logger");
+    let log_file: Box<File> = Box::new(File::create("hard-sync.log").expect("Can't create file"));
     env_logger::Builder::new()
     .target(env_logger::Target::Pipe(log_file))
     .filter(None, LevelFilter::Debug)
@@ -26,7 +25,6 @@ pub fn init_file_logger(){
 }
 
 pub fn init_console_logger(){
-    println!("init_logger");
     env_logger::Builder::from_default_env()
     .filter(None, LevelFilter::Debug)
     .write_style(env_logger::WriteStyle::Always)
@@ -40,7 +38,6 @@ pub fn init(){
         println!("debug mode");
         init_console_logger();
     } else {
-        println!("release mode");
         init_file_logger();
     }
 }
