@@ -1,6 +1,7 @@
 use fli::Fli;
 use std::fs::File;
 use log::*;
+use colored::Colorize;
 
 
 use crate::app::commands;

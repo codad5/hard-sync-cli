@@ -53,6 +53,7 @@ pub fn sync(x : &Fli){
 
     let mut transaction = get_transaction(base.to_str().unwrap().to_string(), target.to_str().unwrap().to_string());
     let reversed : bool = x.is_passed("reversed".to_owned());
+    print!("reversed: {}", reversed);
     transaction.sync(reversed);
 
 }

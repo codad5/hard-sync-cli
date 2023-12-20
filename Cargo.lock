@@ -175,6 +175,7 @@ name = "hard-sync-cli"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "colored",
  "env_logger",
  "fli",
  "log",

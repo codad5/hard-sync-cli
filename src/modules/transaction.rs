@@ -59,6 +59,7 @@ impl Transaction {
 
 
     pub fn prepare(&mut self) -> &mut Self {
+        self.save_base_lock_data();
         self.load_base_data();
         self.load_target_data();
         return self;
@@ -224,6 +225,8 @@ impl Transaction {
         let base_binding: &Vec<PathTransactionData> = binding.get_base_data();
         let mut binding = self.clone();
         let target_binding: &Vec<PathTransactionData> = binding.get_target_data();
+        println!("base_binding: {:?}", base_binding);
+        println!("target_binding: {:?}", target_binding);
         let mut base_data: HashMap<String, PathTransactionData>;
         let mut target_data: HashMap<String, PathTransactionData>;
 
@@ -266,10 +269,18 @@ impl Transaction {
                 if let Some(parent) = target_path.parent() {
                     std::fs::create_dir_all(parent).unwrap();
                 }
-                fs::copy(base_path, target_path).unwrap();
+                match fs::copy(base_path, target_path) {
+                    Ok(_) => {
+                        println!("Successfully copied {:?} to target", d);
+                    }
+                    Err(err) => {
+                        print_error(format!("Error copying {:?} to target: {}", d, err).as_str(), false);
+                    }
+                }
             }
                 
         }
+        self.save_target_lock_data();
     }
     
 
