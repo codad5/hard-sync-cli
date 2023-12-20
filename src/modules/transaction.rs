@@ -218,7 +218,7 @@ impl Transaction {
 
 // syncronization
 impl Transaction {
-    pub fn sync(&mut self, reverse : bool) {
+    pub fn sync(&mut self) {
         // get base and target data
         let mut binding = self.clone();
         let base_binding: &Vec<PathTransactionData> = binding.get_base_data();
@@ -226,16 +226,9 @@ impl Transaction {
         let target_binding: &Vec<PathTransactionData> = binding.get_target_data();
         info!("base_binding: {:?}", base_binding);
         info!("target_binding: {:?}", target_binding);
-        let mut base_data: HashMap<String, PathTransactionData>;
-        let mut target_data: HashMap<String, PathTransactionData>;
-
-        if reverse {
-            base_data = Transaction::path_transaction_vec_to_hash_map(target_binding);
-            target_data = Transaction::path_transaction_vec_to_hash_map(base_binding);
-        } else {
-            base_data = Transaction::path_transaction_vec_to_hash_map(base_binding);
-            target_data = Transaction::path_transaction_vec_to_hash_map(target_binding);
-        }
+        let mut base_data: HashMap<String, PathTransactionData> = Transaction::path_transaction_vec_to_hash_map(base_binding);
+        let mut target_data: HashMap<String, PathTransactionData> = Transaction::path_transaction_vec_to_hash_map(target_binding);
+        
 
         // illerate through base data and check if it exists in target data with an older modified date
         for (d, data) in base_data {

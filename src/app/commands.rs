@@ -49,11 +49,14 @@ pub fn sync(x : &Fli){
         return;
     }
 
-    info!("syncing {} to {}", base.to_str().unwrap(), target.to_str().unwrap());
+    let mut paths_as_string : [String; 2] = match x.is_passed("reverse".to_owned()) {
+        true => [target.to_str().unwrap().to_string(), base.to_str().unwrap().to_string()],
+        false => [base.to_str().unwrap().to_string(), target.to_str().unwrap().to_string()]
+    };
+    let [base_path, target_path] = [paths_as_string[0].clone(), paths_as_string[1].clone()];
 
-    let mut transaction = get_transaction(base.to_str().unwrap().to_string(), target.to_str().unwrap().to_string());
-    let reversed : bool = x.is_passed("reversed".to_owned());
-    info!("reversed: {}", reversed);
-    transaction.sync(reversed);
+    let mut transaction = get_transaction(base_path, target_path);
+    
+    transaction.sync();
 
 }
