@@ -35,7 +35,6 @@ pub fn sync(x : &Fli){
         print_error(format!("Target directory does not exist: {}", target.to_str().unwrap()).as_str(), true);
         return;
     }
-
     //check if hard sync is already initialized in both directories
     if !perform_initialization(&base, x.is_passed("init".to_owned())) {
         x.print_help(format!("Base directory is not initialized: {}", base.to_str().unwrap()).as_str());

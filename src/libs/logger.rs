@@ -2,6 +2,7 @@ use std::fs::File;
 use chrono::Local;
 use log::{info, LevelFilter};
 use std::io::Write;
+use colored::Colorize;
 
 
 
@@ -32,12 +33,35 @@ pub fn init_console_logger(){
     .init();
 }
 
+pub fn init_production_console_logger(){
+    env_logger::Builder::from_default_env()
+    .filter(None, LevelFilter::Info)
+    .write_style(env_logger::WriteStyle::Always)
+    .target(env_logger::Target::Stdout)
+    .format(|buf, record| {
+        writeln!(
+            buf,
+            "[{} {}:{}] {} \n",
+            match record.level() {
+                log::Level::Error => "ERROR".red(),
+                log::Level::Warn => "WARN".yellow(),
+                log::Level::Info => "INFO".green(),
+                log::Level::Debug => "DEBUG".blue(),
+                log::Level::Trace => "TRACE".purple(),
+            },
+            record.file().unwrap_or("unknown"),
+            record.line().unwrap_or(0),
+            record.args()
+        )
+    })
+    .init();
+}
+
 pub fn init(){
     // if development use console logger else use file logger
-    if true {
-        println!("debug mode");
+    if cfg!(debug_assertions) {
         init_console_logger();
     } else {
-        init_file_logger();
+        init_production_console_logger();
     }
 }

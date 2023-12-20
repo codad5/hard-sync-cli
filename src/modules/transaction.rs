@@ -1,8 +1,9 @@
-use std::{path::PathBuf, fs::{File, OpenOptions, self}, io::{BufReader, BufRead, Write, Seek, self}, collections::HashMap};
+use std::{path::PathBuf, fs::{File, OpenOptions, self}, io::{BufReader, BufRead, Write, Seek, self, stdout}, collections::HashMap, time::Duration, thread::sleep};
 use chrono::{Local, DateTime};
 use log::{info, trace};
 use serde::{Serialize, Deserialize};
 use walkdir::WalkDir;
+use colored::Colorize;
 
 use crate::libs::helpers::{system_time_to_string, print_error};
 
@@ -177,9 +178,9 @@ impl Transaction {
     fn get_save_data_path_transaction_data(path : &PathBuf) -> Vec<PathTransactionData> {
         info!("About to get save data for path: {:?}", path);
         let mut data: Vec<PathTransactionData> = Vec::new();
-        let mut lock_file = Transaction::resolve_lock(path);
+        let mut stdout = stdout();
         for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
-            info!("entry: {:?}", entry);
+            print!("\rentry: {:?}", entry.path().to_str().unwrap().green());
             let file_path = entry.path();
             // if the part is a hard-sync directory or is base directory, skip it
             if file_path.ends_with(".hard-sync") || entry.path() == path || file_path.ends_with("hard-sync.lock") {
@@ -192,7 +193,7 @@ impl Transaction {
             let size = metadata.len();
             let is_dir = metadata.is_dir();
             let path = file_path.to_str().unwrap().to_string();
-            info!("Found path: {:?}", path);
+            print!("\rFound path: {:?}", path.as_str().green());
             data.push(PathTransactionData {
                 path,
                 last_modified : system_time_to_string(last_modified),
@@ -201,6 +202,8 @@ impl Transaction {
                 size : size.to_string(),
                 is_dir,
             });
+            stdout.flush().unwrap();
+            sleep(Duration::from_millis(20));
         }
         return data;
     }
