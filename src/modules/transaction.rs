@@ -312,13 +312,14 @@ impl Transaction {
             ..Default::default()
         };
         let mapped_file_to_tar = map_path_to_target(files_to_copy, self.target.clone(), self.base.clone());
-        for (files_to_copy, target) in mapped_file_to_tar {
-            match copy_items_with_progress(&files_to_copy, &target, &options, file_copy_process_handler) {
+        println!("mapped_file_to_tar: {:?}", mapped_file_to_tar);
+        for (files_to_copy, tar) in mapped_file_to_tar {
+            match copy_items_with_progress(&files_to_copy, &tar, &options, file_copy_process_handler) {
                 Ok(_) => {
-                    println!("Successfully copied {} files", total_new_files.to_string().blue());
+                    println!("Successfully copied {} files", files_to_copy.len());
                     // for testing purposes, print all file found
                     for d in &files_to_copy {
-                        println!("{} {} to {}", d, "copied".green(), target.clone().blue());
+                        println!("{} {} to {}", d, "copied".green(), tar.clone().blue());
                     }
                     
                 }

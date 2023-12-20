@@ -94,6 +94,12 @@ pub fn file_copy_process_handler(process_info: TransitProcess) -> TransitProcess
 
 pub fn map_path_to_target(files_to_copy : Vec<String>, target : String, base: String) -> Vec<(Vec<String>, String)> // [paths, target]
  {
+
+    println!("Mapping files to target ==================== ===============");
+    println!("==========================================================");
+    println!("Files to copy: {:?}", files_to_copy);
+    println!("Target: {}", target);
+    println!("Base: {}", base);
     let mut mapped_files : Vec<(Vec<String>, String)> = Vec::new();
 
     for file in files_to_copy {
@@ -109,12 +115,15 @@ pub fn map_path_to_target(files_to_copy : Vec<String>, target : String, base: St
             let mut file = file.split("/").collect::<Vec<&str>>();
             // the last element is the file name
             let file_path_name = file.pop().unwrap();
-            let mut target = target.clone();
+            let mut tar = target.clone();
             // add the file name to the target and separate it with a the system's path separator
-            for _ in 0..depth - 1 {
-                target.push_str(path::MAIN_SEPARATOR.to_string().as_str());
-                target.push_str(file[0]);
-                file.remove(0);
+            for path in file.iter() {
+                // if tar does not end with a path separator add one
+                if !tar.ends_with(path::MAIN_SEPARATOR) {
+                    tar.push_str(path::MAIN_SEPARATOR.to_string().as_str());
+                }
+                tar.push_str(path);
+                tar.push_str(path::MAIN_SEPARATOR.to_string().as_str());
             }
             // check if that target already exists in mapped_files if not found create a new entry
             let mapp = match mapped_files.iter_mut().find(|x| x.1 == target) {
@@ -127,6 +136,8 @@ pub fn map_path_to_target(files_to_copy : Vec<String>, target : String, base: St
             mapp.0.push(file_path_name.to_string());
         }
     }
+    println!("Mapped files: {:?}", mapped_files);
+    println!("==========================================================");
 
     mapped_files
 }
