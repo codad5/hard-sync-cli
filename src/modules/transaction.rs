@@ -182,12 +182,11 @@ impl Transaction {
         let mut data: Vec<PathTransactionData> = Vec::new();
         let mut stdout = stdout();
         stdout.execute(cursor::Hide).unwrap();
-        stdout.write_all(format!("Generating Lock Data for: {:?}", path).as_bytes()).unwrap();
-        stdout.flush().unwrap();
-        thread::sleep(Duration::from_millis(1000));
         for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
             stdout.queue(cursor::SavePosition).unwrap();
-            stdout.write_all(format!("\rentry: {:?}", entry.path().to_str().unwrap().green()).as_bytes()).unwrap();
+            // stdout.write_all(format!("\rentry: {}", entry.path().to_str().unwrap().green()).as_bytes()).unwrap();
+            println!("Generating Lock Data for: {:?}", path);
+            println!("\rentry: {}", entry.path().to_str().unwrap().green());
             stdout.queue(cursor::RestorePosition).unwrap();
             stdout.flush().unwrap();
             thread::sleep(Duration::from_millis(100));
@@ -204,7 +203,8 @@ impl Transaction {
             let is_dir = metadata.is_dir();
             let path = file_path.to_str().unwrap().to_string();
             stdout.queue(cursor::SavePosition).unwrap();
-            stdout.write_all(format!("\rFound path: {:?}", path.as_str().green()).as_bytes()).unwrap();
+            // stdout.write_all(format!("\rFound path: {}", path.as_str().green()).as_bytes()).unwrap();
+            println!("\rFound path: {}", path.as_str().green());
             stdout.queue(cursor::RestorePosition).unwrap();
             stdout.flush().unwrap();
             thread::sleep(Duration::from_millis(100));
@@ -222,7 +222,8 @@ impl Transaction {
         stdout.queue(cursor::RestorePosition).unwrap();
         stdout.flush().unwrap();
         let total_files = data.len();
-        stdout.write_all(format!("\n Generated Lock data for path: {:?} found {} files", path, total_files.to_string().blue()).as_bytes()).unwrap();
+        // stdout.write_all(format!("\n Generated Lock data for path: {:?} found {} files", path, total_files.to_string().blue()).as_bytes()).unwrap();
+        println!("\n Generated Lock data for path: {:?} found {} files", path, total_files.to_string().blue());
         stdout.execute(cursor::Show).unwrap();
         return data;
     }
@@ -255,7 +256,8 @@ impl Transaction {
         // illerate through base data and check if it exists in target data with an older modified date
         for (d, data) in base_data {
             stdout.queue(cursor::SavePosition).unwrap();
-            stdout.write_all(format!("\rChecking if {:?} exists in target data", d).as_bytes()).unwrap();
+            // stdout.write_all(format!("\rChecking if {} exists in target data", d).as_bytes()).unwrap();
+            println!("\rChecking if {} exists in target data", d);
             stdout.queue(cursor::RestorePosition).unwrap();
             stdout.flush().unwrap();
             thread::sleep(Duration::from_millis(100));
@@ -279,7 +281,8 @@ impl Transaction {
             stdout.queue(cursor::SavePosition).unwrap();
             if copying {
                 total_new_files += 1;
-                stdout.write_all(format!("\r [{:?}] {:?} to target \n", "Copying".blue(), d).as_bytes()).unwrap();
+                // stdout.write_all(format!("\r [{}] {} to target \n", "Copying".blue(), d).as_bytes()).unwrap();
+                println!("\r [{}] {} to target \n", "Copying".blue(), d);
                 // copy the file to the target
                 let mut base_path = PathBuf::from(binding.base.clone());
                 base_path.push(&data.path);
@@ -292,7 +295,8 @@ impl Transaction {
                 match fs::copy(base_path, target_path) {
                     Ok(_) => {
                         success_count += 1;
-                        stdout.write_all(format!("Successfully copied {:?} to target", d).as_bytes()).unwrap();
+                        // stdout.write_all(format!("Successfully copied {:?} to target", d).as_bytes()).unwrap();
+                        println!("Successfully copied {:?} to target", d);
                         stdout.queue(cursor::RestorePosition).unwrap();
                         stdout.flush().unwrap();
                         thread::sleep(Duration::from_millis(100));
@@ -300,6 +304,10 @@ impl Transaction {
                         stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
                     }
                     Err(err) => {
+                        stdout.queue(cursor::RestorePosition).unwrap();
+                        stdout.flush().unwrap();
+                        stdout.queue(cursor::RestorePosition).unwrap();
+                        stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
                         print_error(format!("\nError copying {:?} to target: {}", d, err).as_str(), false);
                     }
                 }
