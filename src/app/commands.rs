@@ -38,18 +38,21 @@ pub fn sync(x : &Fli){
 
     //check if hard sync is already initialized in both directories
     if !perform_initialization(&base, x.is_passed("init".to_owned())) {
+        x.print_help(format!("Base directory is not initialized: {}", base.to_str().unwrap()).as_str());
         print_error(format!("Base directory is not initialized: {}", base.to_str().unwrap()).as_str(), true);
         return;
     }
     
     if !perform_initialization(&target, x.is_passed("init".to_owned())) {
+        x.print_help(format!("Target directory is not initialized: {}", target.to_str().unwrap()).as_str());
         print_error(format!("Target directory is not initialized: {}", target.to_str().unwrap()).as_str(), true);
         return;
     }
 
-    info!("syncing {} to {}", base.to_str().unwrap(), target.to_str().unwrap());
+    println!("syncing {} to {}", base.to_str().unwrap(), target.to_str().unwrap());
 
     let mut transaction = get_transaction(base.to_str().unwrap().to_string(), target.to_str().unwrap().to_string());
-    transaction.save_base_lock_data();
+    let reversed : bool = x.is_passed("reversed".to_owned());
+    transaction.sync(reversed);
 
 }

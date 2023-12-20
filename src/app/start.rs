@@ -45,6 +45,7 @@ pub fn init(){
 
     sync_command.default(commands::sync);
     sync_command.option("-i --init", "Initialize hard-sync in the current directory", commands::sync);
+    sync_command.option("-r --reverse", "Sync from target to base", commands::sync);
 
 
     app.run();

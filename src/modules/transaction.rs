@@ -1,4 +1,4 @@
-use std::{path::PathBuf, fs::{File, OpenOptions, self}, io::{BufReader, BufRead, Write, Seek, self}};
+use std::{path::PathBuf, fs::{File, OpenOptions, self}, io::{BufReader, BufRead, Write, Seek, self}, collections::HashMap};
 use chrono::{Local, DateTime};
 use log::info;
 use serde::{Serialize, Deserialize};
@@ -16,6 +16,8 @@ pub struct PathTransactionData {
     is_dir : bool,
 }
 
+
+#[derive(Debug, Clone)]
 pub struct Transaction {
     base: String,
     target: String,
@@ -134,9 +136,9 @@ impl Transaction {
         // println!("lock_file: {:?}", lock_file);
         let reader = BufReader::new(lock_file);
         for line in reader.lines() {
-            println!("trad data: {:?}", line);
+            // println!("trad data: {:?}", line);
             let line = line.unwrap();
-            println!("line: {}", line);
+            // println!("line: {}", line);
             match serde_json::from_str::<PathTransactionData>(&line) {
                 Ok(d) => {
                     data.push(d.clone());
@@ -217,4 +219,70 @@ impl Transaction {
         return Transaction::get_save_data_path_transaction_data(&PathBuf::from(self.target.clone()));
     }
     
+}
+
+// syncronization
+impl Transaction {
+    pub fn sync(&mut self, reverse : bool) {
+        // get base and target data
+        let mut binding = self.clone();
+        let base_binding: &Vec<PathTransactionData> = binding.get_base_data();
+        let mut binding = self.clone();
+        let target_binding: &Vec<PathTransactionData> = binding.get_target_data();
+        let mut base_data: HashMap<String, PathTransactionData>;
+        let mut target_data: HashMap<String, PathTransactionData>;
+
+        if reverse {
+            base_data = Transaction::path_transaction_vec_to_hash_map(target_binding);
+            target_data = Transaction::path_transaction_vec_to_hash_map(base_binding);
+        } else {
+            base_data = Transaction::path_transaction_vec_to_hash_map(base_binding);
+            target_data = Transaction::path_transaction_vec_to_hash_map(target_binding);
+        }
+
+        // illerate through base data and check if it exists in target data with an older modified date
+        for (d, data) in base_data {
+            println!("Checking if {:?} exists in target data", d);
+            let mut copying = match target_data.get(&d) {
+                Some(target_data) => {
+                    // if the target data is a directory, skip it
+                    if target_data.is_dir {
+                        continue;
+                    }
+                    // if the target data is older than the base data, copy it to the target
+                    if target_data.last_modified < data.last_modified {
+                        true
+                    } else {
+                        false
+                    }
+                }
+                None => true
+                
+            };
+
+            if copying {
+                println!("Copying {:?} to target", d);
+                // copy the file to the target
+                let mut base_path = PathBuf::from(binding.base.clone());
+                base_path.push(&data.path);
+                let mut target_path = PathBuf::from(binding.target.clone());
+                target_path.push(&data.path);
+                // create the parent directories if they don't exist
+                if let Some(parent) = target_path.parent() {
+                    std::fs::create_dir_all(parent).unwrap();
+                }
+                fs::copy(base_path, target_path).unwrap();
+            }
+                
+        }
+    }
+    
+
+    pub fn path_transaction_vec_to_hash_map(data: &Vec<PathTransactionData>) -> HashMap<String, PathTransactionData> {
+        let mut map = HashMap::new();
+        for d in data {
+            map.insert(d.path.clone(), d.clone());
+        }
+        return map;
+    }
 }
