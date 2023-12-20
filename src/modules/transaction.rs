@@ -268,11 +268,7 @@ impl Transaction {
                         continue;
                     }
                     // if the target data is older than the base data, copy it to the target
-                    if target_data.last_modified < data.last_modified {
-                        true
-                    } else {
-                        false
-                    }
+                    target_data.last_modified < data.last_modified 
                 }
                 None => true
                 
@@ -292,6 +288,7 @@ impl Transaction {
                 if let Some(parent) = target_path.parent() {
                     std::fs::create_dir_all(parent).unwrap();
                 }
+
                 match fs::copy(base_path, target_path) {
                     Ok(_) => {
                         success_count += 1;
