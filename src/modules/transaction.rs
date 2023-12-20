@@ -136,23 +136,18 @@ impl Transaction {
         // println!("lock_file: {:?}", lock_file);
         let reader = BufReader::new(lock_file);
         for line in reader.lines() {
-            // println!("trad data: {:?}", line);
+            println!("trad data: {:?}", line);
             let line = line.unwrap();
             // println!("line: {}", line);
             match serde_json::from_str::<PathTransactionData>(&line) {
                 Ok(d) => {
                     data.push(d.clone());
-                    // if d.is_dir recursively get all files and folders
-                    if d.is_dir {
-                        let mut path_d = PathBuf::from(d.path);
-                        let mut path_data = Transaction::get_lock_data(&path_d);
-                        data.append(&mut path_data);
-                    }
+                    
                 }
                 Err(err) => {
                     print_error(format!("Error deserializing data: {}", err).as_str(), false);
                 },
-            
+
             }
         }
         return data;
