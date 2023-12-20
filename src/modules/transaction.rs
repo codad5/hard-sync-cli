@@ -1,21 +1,22 @@
-use std::{path::PathBuf, fs::{File, OpenOptions, self}, io::{BufReader, BufRead, Write, Seek, self, stdout}, collections::HashMap, time::Duration, thread::sleep};
+use std::{path::PathBuf, fs::{File, OpenOptions, self}, io::{BufReader, BufRead, Write, Seek, self, stdout}, collections::HashMap, time::Duration, thread::sleep, option};
 use chrono::{Local, DateTime};
 use log::{info, trace};
 use serde::{Serialize, Deserialize};
 use walkdir::WalkDir;
 use colored::Colorize;
 use std::thread;
+use fs_extra::copy_items;
 
 use crossterm::{QueueableCommand, cursor, terminal, ExecutableCommand};
 
-use crate::libs::helpers::{system_time_to_string, print_error};
+use crate::libs::helpers::{system_time_to_u64, print_error, get_relative_path};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PathTransactionData {
     path : String,
-    last_modified : String,
-    last_accessed : String,
-    created : String,
+    last_modified : u64,
+    last_accessed : u64,
+    created : u64,
     size : String,
     is_dir : bool,
 }
@@ -161,6 +162,8 @@ impl Transaction {
     fn save_lock_data(path : &PathBuf, data : Vec<PathTransactionData>) {
         // write to lock file
         let mut lock_file = Transaction::resolve_lock(path);
+        // clean or empty the file
+        lock_file.set_len(0).unwrap();
         for d in data {
             let json = serde_json::to_string(&d).unwrap();
             lock_file.write_all(json.as_bytes()).unwrap();
@@ -201,7 +204,7 @@ impl Transaction {
             let created = metadata.created().unwrap();
             let size = metadata.len();
             let is_dir = metadata.is_dir();
-            let path = file_path.to_str().unwrap().to_string();
+            let path = get_relative_path(path.to_str().unwrap(), file_path.to_str().unwrap()).unwrap();
             stdout.queue(cursor::SavePosition).unwrap();
             // stdout.write_all(format!("\rFound path: {}", path.as_str().green()).as_bytes()).unwrap();
             println!("\rFound path: {}", path.as_str().green());
@@ -210,9 +213,9 @@ impl Transaction {
             thread::sleep(Duration::from_millis(100));
             data.push(PathTransactionData {
                 path,
-                last_modified : system_time_to_string(last_modified),
-                last_accessed : system_time_to_string(last_accessed),
-                created : system_time_to_string(created),
+                last_modified : system_time_to_u64(last_modified),
+                last_accessed : system_time_to_u64(last_accessed),
+                created : system_time_to_u64(created),
                 size : size.to_string(),
                 is_dir,
             });
@@ -267,8 +270,13 @@ impl Transaction {
                     if target_data.is_dir {
                         continue;
                     }
+                    println!("Target Modified: {}, Base Modified: {}", target_data.last_modified, data.last_modified);
+                    println!("Target Accessed: {}, Base Accessed: {}", target_data.last_accessed, data.last_accessed);
+                    println!("Target Created: {}, Base Created: {}", target_data.created, data.created);
                     // if the target data is older than the base data, copy it to the target
-                    target_data.last_modified < data.last_modified 
+                    target_data.last_modified < data.last_modified ||
+                    (target_data.last_modified == data.last_modified && target_data.last_accessed < data.last_accessed) ||
+                    (target_data.last_modified == data.last_modified && target_data.last_accessed == data.last_accessed && target_data.created < data.created)
                 }
                 None => true
                 
@@ -277,7 +285,6 @@ impl Transaction {
             stdout.queue(cursor::SavePosition).unwrap();
             if copying {
                 total_new_files += 1;
-                // stdout.write_all(format!("\r [{}] {} to target \n", "Copying".blue(), d).as_bytes()).unwrap();
                 println!("\r [{}] {} to target \n", "Copying".blue(), d);
                 // copy the file to the target
                 let mut base_path = PathBuf::from(binding.base.clone());
@@ -286,10 +293,17 @@ impl Transaction {
                 target_path.push(&data.path);
                 // create the parent directories if they don't exist
                 if let Some(parent) = target_path.parent() {
+                    println!("Creating parent directories: {:?}", parent);
                     std::fs::create_dir_all(parent).unwrap();
                 }
 
-                match fs::copy(base_path, target_path) {
+                let items : [PathBuf; 2] = [base_path, target_path];
+                let options = fs_extra::dir::CopyOptions { 
+                    overwrite : true,
+                    skip_exist : false,
+                    ..Default::default()
+                 };
+                match copy_items(&items, &binding.target, &options) {
                     Ok(_) => {
                         success_count += 1;
                         // stdout.write_all(format!("Successfully copied {:?} to target", d).as_bytes()).unwrap();

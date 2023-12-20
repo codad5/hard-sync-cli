@@ -69,11 +69,17 @@ pub fn get_transaction(base: String, target: String) -> Transaction {
     Transaction::new(base, target)
 }
 
-pub fn system_time_to_string(system_time: SystemTime) -> String {
-    if let Ok(duration) = system_time.duration_since(UNIX_EPOCH) {
-        format!("{}", duration.as_secs())
+pub fn system_time_to_u64(system_time: SystemTime) -> u64 {
+    system_time.duration_since(UNIX_EPOCH).unwrap().as_secs()
+}
+
+pub fn get_relative_path(parent_path: &str, child_path: &str) -> Option<String> {
+    let parent_path = Path::new(parent_path);
+    let child_path = Path::new(child_path);
+
+    if let Ok(rel_path) = child_path.strip_prefix(parent_path) {
+        Some(rel_path.to_str().unwrap().to_string())
     } else {
-        // Handle the case where the system time is before the Unix epoch
-        "Invalid SystemTime".to_string()
+        None
     }
 }
