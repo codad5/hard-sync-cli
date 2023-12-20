@@ -4,6 +4,9 @@ use log::{info, trace};
 use serde::{Serialize, Deserialize};
 use walkdir::WalkDir;
 use colored::Colorize;
+use std::thread;
+
+use crossterm::{QueueableCommand, cursor, terminal, ExecutableCommand};
 
 use crate::libs::helpers::{system_time_to_string, print_error};
 
@@ -176,11 +179,18 @@ impl Transaction {
     }
 
     fn get_save_data_path_transaction_data(path : &PathBuf) -> Vec<PathTransactionData> {
-        info!("About to get save data for path: {:?}", path);
         let mut data: Vec<PathTransactionData> = Vec::new();
         let mut stdout = stdout();
+        stdout.execute(cursor::Hide).unwrap();
+        stdout.write_all(format!("Generating Lock Data for: {:?}", path).as_bytes()).unwrap();
+        stdout.flush().unwrap();
+        thread::sleep(Duration::from_millis(1000));
         for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
-            print!("\rentry: {:?}", entry.path().to_str().unwrap().green());
+            stdout.queue(cursor::SavePosition).unwrap();
+            stdout.write_all(format!("\rentry: {:?}", entry.path().to_str().unwrap().green()).as_bytes()).unwrap();
+            stdout.queue(cursor::RestorePosition).unwrap();
+            stdout.flush().unwrap();
+            thread::sleep(Duration::from_millis(100));
             let file_path = entry.path();
             // if the part is a hard-sync directory or is base directory, skip it
             if file_path.ends_with(".hard-sync") || entry.path() == path || file_path.ends_with("hard-sync.lock") {
@@ -193,7 +203,11 @@ impl Transaction {
             let size = metadata.len();
             let is_dir = metadata.is_dir();
             let path = file_path.to_str().unwrap().to_string();
-            print!("\rFound path: {:?}", path.as_str().green());
+            stdout.queue(cursor::SavePosition).unwrap();
+            stdout.write_all(format!("\rFound path: {:?}", path.as_str().green()).as_bytes()).unwrap();
+            stdout.queue(cursor::RestorePosition).unwrap();
+            stdout.flush().unwrap();
+            thread::sleep(Duration::from_millis(100));
             data.push(PathTransactionData {
                 path,
                 last_modified : system_time_to_string(last_modified),
@@ -202,9 +216,14 @@ impl Transaction {
                 size : size.to_string(),
                 is_dir,
             });
-            stdout.flush().unwrap();
-            sleep(Duration::from_millis(20));
+            stdout.queue(cursor::RestorePosition).unwrap();
+            stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
         }
+        stdout.queue(cursor::RestorePosition).unwrap();
+        stdout.flush().unwrap();
+        let total_files = data.len();
+        stdout.write_all(format!("\n Generated Lock data for path: {:?} found {} files", path, total_files.to_string().blue()).as_bytes()).unwrap();
+        stdout.execute(cursor::Show).unwrap();
         return data;
     }
 
@@ -227,15 +246,19 @@ impl Transaction {
         let base_binding: &Vec<PathTransactionData> = binding.get_base_data();
         let mut binding = self.clone();
         let target_binding: &Vec<PathTransactionData> = binding.get_target_data();
-        info!("base_binding: {:?}", base_binding);
-        info!("target_binding: {:?}", target_binding);
         let mut base_data: HashMap<String, PathTransactionData> = Transaction::path_transaction_vec_to_hash_map(base_binding);
         let mut target_data: HashMap<String, PathTransactionData> = Transaction::path_transaction_vec_to_hash_map(target_binding);
-        
-
+        let mut success_count = 0;
+        let mut total_new_files = 0;
+        let mut stdout = stdout();
+        stdout.execute(cursor::Hide).unwrap();
         // illerate through base data and check if it exists in target data with an older modified date
         for (d, data) in base_data {
-            info!("Checking if {:?} exists in target data", d);
+            stdout.queue(cursor::SavePosition).unwrap();
+            stdout.write_all(format!("\rChecking if {:?} exists in target data", d).as_bytes()).unwrap();
+            stdout.queue(cursor::RestorePosition).unwrap();
+            stdout.flush().unwrap();
+            thread::sleep(Duration::from_millis(100));
             let mut copying = match target_data.get(&d) {
                 Some(target_data) => {
                     // if the target data is a directory, skip it
@@ -253,8 +276,10 @@ impl Transaction {
                 
             };
 
+            stdout.queue(cursor::SavePosition).unwrap();
             if copying {
-                info!("Copying {:?} to target", d);
+                total_new_files += 1;
+                stdout.write_all(format!("\r [{:?}] {:?} to target \n", "Copying".blue(), d).as_bytes()).unwrap();
                 // copy the file to the target
                 let mut base_path = PathBuf::from(binding.base.clone());
                 base_path.push(&data.path);
@@ -266,15 +291,23 @@ impl Transaction {
                 }
                 match fs::copy(base_path, target_path) {
                     Ok(_) => {
-                        info!("Successfully copied {:?} to target", d);
+                        success_count += 1;
+                        stdout.write_all(format!("Successfully copied {:?} to target", d).as_bytes()).unwrap();
+                        stdout.queue(cursor::RestorePosition).unwrap();
+                        stdout.flush().unwrap();
+                        thread::sleep(Duration::from_millis(100));
+                        stdout.queue(cursor::RestorePosition).unwrap();
+                        stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
                     }
                     Err(err) => {
-                        print_error(format!("Error copying {:?} to target: {}", d, err).as_str(), false);
+                        print_error(format!("\nError copying {:?} to target: {}", d, err).as_str(), false);
                     }
                 }
             }
-                
+            
         }
+        stdout.execute(cursor::Show).unwrap();
+        println!("Successfully copied {}/{} files", success_count.to_string().green(), total_new_files.to_string().blue());
         self.save_target_lock_data();
     }
     
