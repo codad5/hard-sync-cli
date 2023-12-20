@@ -30,12 +30,6 @@ pub fn get_drive_root_dir(path: &str) -> Option<String> {
 
 pub fn print_error(message: &str, exit: bool) {
     error!("{}", message);
-
-    // if it is release mode print to console
-    if cfg!(not(debug_assertions)) {
-        println!("{}", message);
-    }
-
     if exit {
         std::process::exit(1);
     }
