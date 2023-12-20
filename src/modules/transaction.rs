@@ -5,11 +5,11 @@ use serde::{Serialize, Deserialize};
 use walkdir::WalkDir;
 use colored::Colorize;
 use std::thread;
-use fs_extra::copy_items;
+use fs_extra::copy_items_with_progress;
 
 use crossterm::{QueueableCommand, cursor, terminal, ExecutableCommand};
 
-use crate::libs::helpers::{system_time_to_u64, print_error, get_relative_path};
+use crate::libs::helpers::{system_time_to_u64, print_error, get_relative_path, file_copy_process_handler, get_calling_path, map_path_to_target};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PathTransactionData {
@@ -187,7 +187,6 @@ impl Transaction {
         stdout.execute(cursor::Hide).unwrap();
         for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
             stdout.queue(cursor::SavePosition).unwrap();
-            // stdout.write_all(format!("\rentry: {}", entry.path().to_str().unwrap().green()).as_bytes()).unwrap();
             println!("Generating Lock Data for: {:?}", path);
             println!("\rentry: {}", entry.path().to_str().unwrap().green());
             stdout.queue(cursor::RestorePosition).unwrap();
@@ -228,6 +227,12 @@ impl Transaction {
         // stdout.write_all(format!("\n Generated Lock data for path: {:?} found {} files", path, total_files.to_string().blue()).as_bytes()).unwrap();
         println!("\n Generated Lock data for path: {:?} found {} files", path, total_files.to_string().blue());
         stdout.execute(cursor::Show).unwrap();
+        // for testing purposes, print all file found
+        // print all file found
+        println!("Files found for path: {:?}", path.to_str().unwrap());
+        for d in &data {
+            println!("{} {}", d.path, d.size);
+        }
         return data;
     }
 
@@ -246,88 +251,84 @@ impl Transaction {
 impl Transaction {
     pub fn sync(&mut self) {
         // get base and target data
+        let mut files_to_copy : Vec<String> = Vec::new();
         let mut binding = self.clone();
         let base_binding: &Vec<PathTransactionData> = binding.get_base_data();
         let mut binding = self.clone();
         let target_binding: &Vec<PathTransactionData> = binding.get_target_data();
-        let mut base_data: HashMap<String, PathTransactionData> = Transaction::path_transaction_vec_to_hash_map(base_binding);
-        let mut target_data: HashMap<String, PathTransactionData> = Transaction::path_transaction_vec_to_hash_map(target_binding);
-        let mut success_count = 0;
+        let base_data: HashMap<String, PathTransactionData> = Transaction::path_transaction_vec_to_hash_map(base_binding);
+        let target_data: HashMap<String, PathTransactionData> = Transaction::path_transaction_vec_to_hash_map(target_binding);
         let mut total_new_files = 0;
         let mut stdout = stdout();
         stdout.execute(cursor::Hide).unwrap();
-        // illerate through base data and check if it exists in target data with an older modified date
+        println!("Checking for Updated/Untracked Files");
+        let calling_path  = get_calling_path();
         for (d, data) in base_data {
             stdout.queue(cursor::SavePosition).unwrap();
-            // stdout.write_all(format!("\rChecking if {} exists in target data", d).as_bytes()).unwrap();
             println!("\rChecking if {} exists in target data", d);
             stdout.queue(cursor::RestorePosition).unwrap();
             stdout.flush().unwrap();
             thread::sleep(Duration::from_millis(100));
             let mut copying = match target_data.get(&d) {
-                Some(target_data) => {
+                Some(dat_exist) => {
                     // if the target data is a directory, skip it
-                    if target_data.is_dir {
+                    if dat_exist.is_dir {
                         continue;
                     }
-                    println!("Target Modified: {}, Base Modified: {}", target_data.last_modified, data.last_modified);
-                    println!("Target Accessed: {}, Base Accessed: {}", target_data.last_accessed, data.last_accessed);
-                    println!("Target Created: {}, Base Created: {}", target_data.created, data.created);
                     // if the target data is older than the base data, copy it to the target
-                    target_data.last_modified < data.last_modified ||
-                    (target_data.last_modified == data.last_modified && target_data.last_accessed < data.last_accessed) ||
-                    (target_data.last_modified == data.last_modified && target_data.last_accessed == data.last_accessed && target_data.created < data.created)
+                    dat_exist.last_modified < data.last_modified ||
+                    (dat_exist.last_modified == data.last_modified && dat_exist.last_accessed < data.last_accessed) ||
+                    (dat_exist.last_modified == data.last_modified && dat_exist.last_accessed == data.last_accessed && dat_exist.created < data.created)
                 }
                 None => true
                 
             };
 
-            stdout.queue(cursor::SavePosition).unwrap();
             if copying {
+                stdout.queue(cursor::SavePosition).unwrap();
+                let full_path = PathBuf::from(self.base.clone()).join(&data.path);
+                // remove calling path from full path if it exists
+                let full_path = match get_relative_path(calling_path.as_str(), full_path.to_str().unwrap()) {
+                    Some(x) => x,
+                    None => full_path.to_str().unwrap().to_string()
+                };
+                files_to_copy.push(full_path.clone());
                 total_new_files += 1;
-                println!("\r [{}] {} to target \n", "Copying".blue(), d);
-                // copy the file to the target
-                let mut base_path = PathBuf::from(binding.base.clone());
-                base_path.push(&data.path);
-                let mut target_path = PathBuf::from(binding.target.clone());
-                target_path.push(&data.path);
-                // create the parent directories if they don't exist
-                if let Some(parent) = target_path.parent() {
-                    println!("Creating parent directories: {:?}", parent);
-                    std::fs::create_dir_all(parent).unwrap();
-                }
-
-                let items : [PathBuf; 2] = [base_path, target_path];
-                let options = fs_extra::dir::CopyOptions { 
-                    overwrite : true,
-                    skip_exist : false,
-                    ..Default::default()
-                 };
-                match copy_items(&items, &binding.target, &options) {
-                    Ok(_) => {
-                        success_count += 1;
-                        // stdout.write_all(format!("Successfully copied {:?} to target", d).as_bytes()).unwrap();
-                        println!("Successfully copied {:?} to target", d);
-                        stdout.queue(cursor::RestorePosition).unwrap();
-                        stdout.flush().unwrap();
-                        thread::sleep(Duration::from_millis(100));
-                        stdout.queue(cursor::RestorePosition).unwrap();
-                        stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
-                    }
-                    Err(err) => {
-                        stdout.queue(cursor::RestorePosition).unwrap();
-                        stdout.flush().unwrap();
-                        stdout.queue(cursor::RestorePosition).unwrap();
-                        stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
-                        print_error(format!("\nError copying {:?} to target: {}", d, err).as_str(), false);
-                    }
-                }
+                println!("\r Found: {} with full path: {}", d, full_path.as_str().green());
+                stdout.queue(cursor::RestorePosition).unwrap();
+                stdout.flush().unwrap();
+                thread::sleep(Duration::from_millis(100));
             }
-            
+            stdout.queue(cursor::RestorePosition).unwrap();
+            stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
         }
         stdout.execute(cursor::Show).unwrap();
-        println!("Successfully copied {}/{} files", success_count.to_string().green(), total_new_files.to_string().blue());
+        info!("Found {} new files available for copying", total_new_files);
+        let options = fs_extra::dir::CopyOptions { 
+            overwrite : true,
+            skip_exist : false,
+            copy_inside : false,
+            // content_only : true,
+            ..Default::default()
+        };
+        let mapped_file_to_tar = map_path_to_target(files_to_copy, self.target.clone(), self.base.clone());
+        for (files_to_copy, target) in mapped_file_to_tar {
+            match copy_items_with_progress(&files_to_copy, &target, &options, file_copy_process_handler) {
+                Ok(_) => {
+                    println!("Successfully copied {} files", total_new_files.to_string().blue());
+                    // for testing purposes, print all file found
+                    for d in &files_to_copy {
+                        println!("{} {} to {}", d, "copied".green(), target.clone().blue());
+                    }
+                    
+                }
+                Err(err) => {
+                    print_error(format!("\nError copying {:?} to target: {}", files_to_copy, err).as_str(), false);
+                }
+            }
+        }
         self.save_target_lock_data();
+        self.save_base_lock_data();
     }
     
 

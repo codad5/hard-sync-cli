@@ -1,6 +1,7 @@
 use crate::modules::transaction::Transaction;
 
 use std::{path::{PathBuf, Component, Path, self}, time::{SystemTime, UNIX_EPOCH}};
+use fs_extra::{TransitProcess, dir::TransitProcessResult};
 
 use log::error;
 
@@ -82,4 +83,50 @@ pub fn get_relative_path(parent_path: &str, child_path: &str) -> Option<String> 
     } else {
         None
     }
+}
+
+pub fn file_copy_process_handler(process_info: TransitProcess) -> TransitProcessResult {
+    let TransitProcess { total_bytes, copied_bytes, file_name , ..} = process_info;
+    let percentage = (copied_bytes as f64 / total_bytes as f64) * 100.0;
+    println!("{}: {:.2}%", file_name.as_str(), percentage);
+    TransitProcessResult::ContinueOrAbort
+}
+
+pub fn map_path_to_target(files_to_copy : Vec<String>, target : String, base: String) -> Vec<(Vec<String>, String)> // [paths, target]
+ {
+    let mut mapped_files : Vec<(Vec<String>, String)> = Vec::new();
+
+    for file in files_to_copy {
+        // remove base path from file
+        let file = match get_relative_path(base.as_str(), file.as_str()) {
+            Some(x) => x,
+            None => file
+        };
+        let depth = file.split("/").count();        
+        if depth == 1 {
+            mapped_files.push((vec![file], target.clone()));
+        } else {
+            let mut file = file.split("/").collect::<Vec<&str>>();
+            // the last element is the file name
+            let file_path_name = file.pop().unwrap();
+            let mut target = target.clone();
+            // add the file name to the target and separate it with a the system's path separator
+            for _ in 0..depth - 1 {
+                target.push_str(path::MAIN_SEPARATOR.to_string().as_str());
+                target.push_str(file[0]);
+                file.remove(0);
+            }
+            // check if that target already exists in mapped_files if not found create a new entry
+            let mapp = match mapped_files.iter_mut().find(|x| x.1 == target) {
+                Some(x) => x,
+                None => {
+                    mapped_files.push((Vec::new(), target.clone()));
+                    mapped_files.last_mut().unwrap()
+                }
+            };
+            mapp.0.push(file_path_name.to_string());
+        }
+    }
+
+    mapped_files
 }
