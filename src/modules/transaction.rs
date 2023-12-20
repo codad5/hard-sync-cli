@@ -1,6 +1,6 @@
 use std::{path::PathBuf, fs::{File, OpenOptions, self}, io::{BufReader, BufRead, Write, Seek, self}, collections::HashMap};
 use chrono::{Local, DateTime};
-use log::info;
+use log::{info, trace};
 use serde::{Serialize, Deserialize};
 use walkdir::WalkDir;
 
@@ -137,7 +137,7 @@ impl Transaction {
         // println!("lock_file: {:?}", lock_file);
         let reader = BufReader::new(lock_file);
         for line in reader.lines() {
-            println!("trad data: {:?}", line);
+            trace!("trad data: {:?}", line);
             let line = line.unwrap();
             // println!("line: {}", line);
             match serde_json::from_str::<PathTransactionData>(&line) {
@@ -192,6 +192,7 @@ impl Transaction {
             let size = metadata.len();
             let is_dir = metadata.is_dir();
             let path = file_path.to_str().unwrap().to_string();
+            info!("Found path: {:?}", path);
             data.push(PathTransactionData {
                 path,
                 last_modified : system_time_to_string(last_modified),
@@ -206,12 +207,10 @@ impl Transaction {
 
 
     pub fn get_base_save_data(&self) -> Vec<PathTransactionData> {
-        info!("About to get base save data");
         return Transaction::get_save_data_path_transaction_data(&PathBuf::from(self.base.clone()));
     }
 
     pub fn get_target_save_data(&self) -> Vec<PathTransactionData> {
-        info!("About to get target save data");
         return Transaction::get_save_data_path_transaction_data(&PathBuf::from(self.target.clone()));
     }
     
@@ -225,8 +224,8 @@ impl Transaction {
         let base_binding: &Vec<PathTransactionData> = binding.get_base_data();
         let mut binding = self.clone();
         let target_binding: &Vec<PathTransactionData> = binding.get_target_data();
-        println!("base_binding: {:?}", base_binding);
-        println!("target_binding: {:?}", target_binding);
+        info!("base_binding: {:?}", base_binding);
+        info!("target_binding: {:?}", target_binding);
         let mut base_data: HashMap<String, PathTransactionData>;
         let mut target_data: HashMap<String, PathTransactionData>;
 
@@ -240,7 +239,7 @@ impl Transaction {
 
         // illerate through base data and check if it exists in target data with an older modified date
         for (d, data) in base_data {
-            println!("Checking if {:?} exists in target data", d);
+            info!("Checking if {:?} exists in target data", d);
             let mut copying = match target_data.get(&d) {
                 Some(target_data) => {
                     // if the target data is a directory, skip it
@@ -259,7 +258,7 @@ impl Transaction {
             };
 
             if copying {
-                println!("Copying {:?} to target", d);
+                info!("Copying {:?} to target", d);
                 // copy the file to the target
                 let mut base_path = PathBuf::from(binding.base.clone());
                 base_path.push(&data.path);
@@ -271,7 +270,7 @@ impl Transaction {
                 }
                 match fs::copy(base_path, target_path) {
                     Ok(_) => {
-                        println!("Successfully copied {:?} to target", d);
+                        info!("Successfully copied {:?} to target", d);
                     }
                     Err(err) => {
                         print_error(format!("Error copying {:?} to target: {}", d, err).as_str(), false);

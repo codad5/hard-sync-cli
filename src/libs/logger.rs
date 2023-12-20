@@ -34,7 +34,7 @@ pub fn init_console_logger(){
 
 pub fn init(){
     // if development use console logger else use file logger
-    if cfg!(debug_assertions) {
+    if true {
         println!("debug mode");
         init_console_logger();
     } else {
