@@ -106,18 +106,10 @@ pub fn file_copy_process_handler(process_info: TransitProcess) -> TransitProcess
  * target - expected end dir 
  * base - paths where those files are located 
  */
-pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: String) -> Vec<(Vec<String>, String)> {
-    println!("Mapping files to target ==================== ===============");
-    println!("==========================================================");
-    println!("Files to copy: {:?}", files_to_copy);
-    println!("Target: {}", target);
-    println!("Base: {}", base);
-    
+pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: String) -> Vec<(Vec<String>, String)> { 
     let mut mapped_files: Vec<(Vec<String>, String)> = Vec::new();
     // change all separators for target to /
-    println!("Before Target: {}", target);
     let target = target.replace(path::MAIN_SEPARATOR, "/");
-    println!("Target: {}", target);
 
     for file in files_to_copy {
         // Remove base path from file
@@ -161,9 +153,5 @@ pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: Stri
         }
         
     }
-
-    println!("Mapped files: {:?}", mapped_files);
-    println!("==========================================================");
-
     mapped_files
 }
