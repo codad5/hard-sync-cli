@@ -142,7 +142,13 @@ pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: Stri
             target_path.push_str(path_part);
         }
         let path_for_sys = Path::new(file.as_str());
-        let path_for_sys = path_for_sys.to_str().unwrap().to_string();
+        let path_for_sys = path_for_sys.components().filter_map(|x| {
+            //remove path that are not a possible file name
+            if ["/", "//", ".", "\\"].contains(&x.as_os_str().to_str().unwrap()) {
+                None
+            } else {
+                Some(x.as_os_str().to_str().unwrap().to_string())
+            }}).collect::<Vec<String>>().join("/");
         // Check if that target already exists in mapped_files; if not found, create a new entry
         if let Some(existing_mapping) = mapped_files.iter_mut().find(|x| { x.1 == target_path}) {
             existing_mapping.0.push(path_for_sys);
