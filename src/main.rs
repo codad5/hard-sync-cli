@@ -1,3 +1,7 @@
+
+#[cfg(test)]
+mod tests;
+
 mod app;
 mod libs;
 mod modules;

@@ -59,7 +59,7 @@ pub fn sync(x : &Fli){
     transaction.sync();
 
     if x.is_passed("both".to_owned()) {
-        println!("Syncing Backwards");
+        println!("Syncing Backw
         let [base_path, target_path] = [paths_as_string[1].clone(), paths_as_string[0].clone()];
         let mut transaction = get_transaction(base_path, target_path);
         

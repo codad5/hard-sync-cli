@@ -11,7 +11,7 @@ use crossterm::{QueueableCommand, cursor, terminal, ExecutableCommand};
 
 use crate::libs::helpers::{system_time_to_u64, print_error, get_relative_path, file_copy_process_handler, get_calling_path, map_path_to_target};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct PathTransactionData {
     path : String,
     last_modified : u64,
@@ -22,7 +22,7 @@ pub struct PathTransactionData {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Transaction {
     base: String,
     target: String,
