@@ -55,11 +55,11 @@ pub fn sync(x : &Fli){
     let [base_path, target_path] = [paths_as_string[0].clone(), paths_as_string[1].clone()];
 
     let mut transaction = get_transaction(base_path, target_path);
-    
+    transaction.prepare();
     transaction.sync();
 
     if x.is_passed("both".to_owned()) {
-        println!("Syncing Backw
+        println!("Syncing Backwards");
         let [base_path, target_path] = [paths_as_string[1].clone(), paths_as_string[0].clone()];
         let mut transaction = get_transaction(base_path, target_path);
         

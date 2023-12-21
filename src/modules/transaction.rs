@@ -41,7 +41,6 @@ impl Transaction {
             target_data : Vec::new(),
             last_updated : [Local::now(), Local::now()],
         };
-        t.prepare();
         return t;
 
     }
