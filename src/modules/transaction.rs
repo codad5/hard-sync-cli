@@ -226,12 +226,6 @@ impl Transaction {
         // stdout.write_all(format!("\n Generated Lock data for path: {:?} found {} files", path, total_files.to_string().blue()).as_bytes()).unwrap();
         println!("\n Generated Lock data for path: {:?} found {} files", path, total_files.to_string().blue());
         stdout.execute(cursor::Show).unwrap();
-        // for testing purposes, print all file found
-        // print all file found
-        println!("Files found for path: {:?}", path.to_str().unwrap());
-        for d in &data {
-            println!("{} {}", d.path, d.size);
-        }
         return data;
     }
 
@@ -310,10 +304,8 @@ impl Transaction {
             // content_only : true,
             ..Default::default()
         };
-        println!("files_to_copy: {:?}", files_to_copy);
         let files_to_copy = files_to_copy.to_vec();
         let mapped_file_to_tar = map_path_to_target(files_to_copy, self.target.clone(), self.base.clone());
-        println!("mapped_file_to_tar: {:?}", mapped_file_to_tar);
         for (files_to_copy, tar) in mapped_file_to_tar {
             match copy_items_with_progress(&files_to_copy, &tar, &options, file_copy_process_handler) {
                 Ok(_) => {
