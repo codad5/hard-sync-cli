@@ -116,6 +116,10 @@ pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: Stri
             let mut target_path = target.clone();
 
             for path_part in file_parts.iter() {
+                // if path_part is empty, skip
+                if path_part.is_empty() {
+                    continue;
+                }
                 println!("Path: {} to target: {}", path_part, target_path);
 
                 // If target_path does not end with a path separator, add one
