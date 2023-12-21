@@ -43,6 +43,10 @@ fn test_get_relative_path(){
         let relative_path = get_relative_path("c:/dev/test", "c:/dev/test/code/index.js");
         assert!(relative_path.is_some());
         assert_eq!("code/index.js", relative_path.unwrap());
+
+        let relative_path = get_relative_path("c:/workspace/find", "find/code/index.js");
+        assert!(relative_path.is_some());
+        assert_eq!("code/index.js", relative_path.unwrap());
         
         let relative_path = get_relative_path("c:/dev/test", "c:/dev/test/index.js");
         assert!(relative_path.is_some());
@@ -58,5 +62,8 @@ fn test_get_relative_path(){
 
         // for non relative path 
         let relative_path = get_relative_path("c:/pain/test", "c:/dev/test/code/index.js");
+        assert!(!relative_path.is_some());
+
+        let relative_path = get_relative_path("/pain", "code/index.js");
         assert!(!relative_path.is_some());
 }

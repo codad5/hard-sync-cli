@@ -79,10 +79,19 @@ pub fn get_relative_path(parent_path: &str, child_path: &str) -> Option<String> 
     let child_path = Path::new(child_path);
 
     if let Ok(rel_path) = child_path.strip_prefix(parent_path) {
-        Some(rel_path.to_str().unwrap().to_string())
-    } else {
-        None
+        return Some(rel_path.to_str().unwrap().to_string());
+    } 
+    // else if the beginning of the child path is the end of the parent then there is a possible relative path
+    else if let Some(parent_first_component) = parent_path.components().last()  
+    {
+        if parent_path.components().count() <= 1 {
+            return None
+        }
+        return get_relative_path(parent_first_component.as_os_str().to_str().unwrap(), child_path.as_os_str().to_str().unwrap());
     }
+    
+    None
+    
 }
 
 pub fn file_copy_process_handler(process_info: TransitProcess) -> TransitProcessResult {
@@ -91,6 +100,12 @@ pub fn file_copy_process_handler(process_info: TransitProcess) -> TransitProcess
     println!("{}: {:.2}%", file_name.as_str(), percentage);
     TransitProcessResult::ContinueOrAbort
 }
+
+/**
+ * files to copy - paths of all files to copy
+ * target - expected end dir 
+ * base - paths where those files are located 
+ */
 pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: String) -> Vec<(Vec<String>, String)> {
     println!("Mapping files to target ==================== ===============");
     println!("==========================================================");
@@ -106,6 +121,8 @@ pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: Stri
             Some(x) => x,
             None => file.clone()
         };
+
+        println!("Base : {}, rel_path : {}, orginal : {}", base, rel_file, file);
         let depth = rel_file.split("/").count();        
 
         if depth == 1 {
@@ -132,7 +149,10 @@ pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: Stri
             }
 
             // Check if that target already exists in mapped_files; if not found, create a new entry
-            if let Some(existing_mapping) = mapped_files.iter_mut().find(|x| x.1 == target_path) {
+            if let Some(existing_mapping) = mapped_files.iter_mut().find(|x| {
+                println!("Checking if x.1 == target ({} == {}) and file {}", x.1, target_path, rel_file);
+                x.1 == target_path
+            }) {
                 existing_mapping.0.push(rel_file);
             } else {
                 mapped_files.push((vec![rel_file], target_path));

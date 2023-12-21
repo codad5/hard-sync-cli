@@ -54,6 +54,44 @@ fn test_map_path_to_target()
 
     let mapped_files = map_path_to_target(file_to_copy.to_vec(), target.to_owned(), BASE.to_owned());
     assert_eq!(mapped_files, expected);
+
+    let base = "c:/workspace/find";
+    let target = "c:/workspace/dive";
+    let file_to_copy: [String; 7] = [
+        String::from("find//find.txt"),
+        String::from("find//forever"),
+        String::from("find//forever//sup//th.txt"),
+        String::from("find//index.txt"),
+        String::from("find//pixel.txt"),
+        String::from("find//forever//sup"),
+        String::from("find//forever//bent.txt"),
+        ];
+    let expected: Vec<(Vec<String>, String)> = Vec::from([
+        (vec![String::from("find.txt"), String::from("forever"), String::from("index.txt"), String::from("pixel.txt")], String::from("c:/workspace/dive")),
+        (vec![String::from("forever//sup//th.txt")], String::from("c:/workspace/dive/forever/sup")),
+        (vec![String::from("forever//sup"), String::from("forever//bent.txt")], String::from("c:/workspace/dive/forever")),
+        ]);
+    let mapped_files = map_path_to_target(file_to_copy.to_vec(), target.to_owned(), base.to_owned());
+    assert_eq!(mapped_files, expected);
+        
+        
+    let base = "c:/workspace";
+    let file_to_copy: [String; 7] = [
+        String::from("find//find.txt"),
+        String::from("find//forever"),
+        String::from("find//forever//sup//th.txt"),
+        String::from("find//index.txt"),
+        String::from("find//pixel.txt"),
+        String::from("find//forever//sup"),
+        String::from("find//forever//bent.txt"),
+    ];
+    let expected: Vec<(Vec<String>, String)> = Vec::from([
+        (vec![String::from("find//find.txt"), String::from("find//forever"), String::from("find//index.txt"), String::from("find//pixel.txt")], String::from("c:/workspace/dive/find")),
+        (vec![String::from("find//forever//sup//th.txt")], String::from("c:/workspace/dive/find/forever/sup")),
+        (vec![String::from("find//forever//sup"), String::from("find//forever//bent.txt")], String::from("c:/workspace/dive/find/forever")),
+    ]);
+    let mapped_files = map_path_to_target(file_to_copy.to_vec(), target.to_owned(), base.to_owned());
+    // assert_eq!(mapped_files, expected);
     
     
 }
