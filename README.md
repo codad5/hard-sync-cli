@@ -4,7 +4,7 @@ This is a simple cli tool to sync files between two directories. It is written i
 ## Reason for creation
 I mainly created this project for two reasons:
 - I wanted to learn Rust and this was a good project to start with (cause probably another tool like this already exists)
-- I wanted to sync my files between my laptop and my external hard drive, and not having to think about which files to copy and dealing with windows `similar file exists` dialog box was a pain. So I created this tool to do it for me.
+- I wanted to sync my files between my laptop and my external hard drive(esp my-movies), and not having to think about which files to copy and dealing with windows `similar file exists` dialog box was a pain. So I created this tool to do it for me.
 
 ## Installation
 ### From source
