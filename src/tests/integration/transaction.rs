@@ -25,11 +25,11 @@ fn test_map_path_to_target()
         String::from("c:/workspace/code/press/index.js"),
     ];
     let expected: Vec<(Vec<String>, String)> = Vec::from([
-        (vec![String::from("code/index.js"), String::from("code/index.ts")], String::from("c:/workspace2/code")),
-        (vec![String::from("code/test/index.js"), String::from("code/test/index.ts")], String::from("c:/workspace2/code/test")),
-        (vec![String::from("code/test/test2/index.js")], String::from("c:/workspace2/code/test/test2")),
-        (vec![String::from("code/press/test2/index.ts")], String::from("c:/workspace2/code/press/test2")),
-        (vec![String::from("code/press/index.js")], String::from("c:/workspace2/code/press")),
+        (vec![String::from("c:/workspace/code/index.js"), String::from("c:/workspace/code/index.ts")], String::from("c:/workspace2/code")),
+        (vec![String::from("c:/workspace/code/test/index.js"), String::from("c:/workspace/code/test/index.ts")], String::from("c:/workspace2/code/test")),
+        (vec![String::from("c:/workspace/code/test/test2/index.js")], String::from("c:/workspace2/code/test/test2")),
+        (vec![String::from("c:/workspace/code/press/test2/index.ts")], String::from("c:/workspace2/code/press/test2")),
+        (vec![String::from("c:/workspace/code/press/index.js")], String::from("c:/workspace2/code/press")),
     ]);
 
     let mapped_files = map_path_to_target(file_to_copy.to_vec(), target.to_owned(), BASE.to_owned());
@@ -67,9 +67,9 @@ fn test_map_path_to_target()
         String::from("find//forever//bent.txt"),
         ];
     let expected: Vec<(Vec<String>, String)> = Vec::from([
-        (vec![String::from("find.txt"), String::from("forever"), String::from("index.txt"), String::from("pixel.txt")], String::from("c:/workspace/dive")),
-        (vec![String::from("forever//sup//th.txt")], String::from("c:/workspace/dive/forever/sup")),
-        (vec![String::from("forever//sup"), String::from("forever//bent.txt")], String::from("c:/workspace/dive/forever")),
+        (vec![String::from("find//find.txt"), String::from("find//forever"), String::from("find//index.txt"), String::from("find//pixel.txt")], String::from("c:/workspace/dive")),
+        (vec![String::from("find//forever//sup//th.txt")], String::from("c:/workspace/dive/forever/sup")),
+        (vec![String::from("find//forever//sup"), String::from("find//forever//bent.txt")], String::from("c:/workspace/dive/forever")),
         ]);
     let mapped_files = map_path_to_target(file_to_copy.to_vec(), target.to_owned(), base.to_owned());
     assert_eq!(mapped_files, expected);
