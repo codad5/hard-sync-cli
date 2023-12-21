@@ -91,7 +91,7 @@ fn test_map_path_to_target()
         (vec![String::from("find//forever//sup"), String::from("find//forever//bent.txt")], String::from("c:/workspace/dive/find/forever")),
     ]);
     let mapped_files = map_path_to_target(file_to_copy.to_vec(), target.to_owned(), base.to_owned());
-    // assert_eq!(mapped_files, expected);
+    assert_eq!(mapped_files, expected);
     
     
 }

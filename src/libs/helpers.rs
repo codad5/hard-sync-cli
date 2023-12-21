@@ -124,40 +124,37 @@ pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: Stri
 
         println!("Base : {}, rel_path : {}, orginal : {}", base, rel_file, file);
         let depth = rel_file.split("/").count();        
+        
+        let mut file_parts = rel_file.split("/").collect::<Vec<&str>>();
+        let file_name = file_parts.pop().unwrap();
+        let mut target_path = target.clone();
 
-        if depth == 1 {
-            mapped_files.push((vec![rel_file], target.clone()));
-        } else {
-            let mut file_parts = rel_file.split("/").collect::<Vec<&str>>();
-            let file_name = file_parts.pop().unwrap();
-            let mut target_path = target.clone();
+        for path_part in file_parts.iter() {
+            // if path_part is empty, skip
+            if path_part.is_empty() {
+                continue;
+            }
+            println!("Path: {} to target: {}", path_part, target_path);
 
-            for path_part in file_parts.iter() {
-                // if path_part is empty, skip
-                if path_part.is_empty() {
-                    continue;
-                }
-                println!("Path: {} to target: {}", path_part, target_path);
-
-                // If target_path does not end with a path separator, add one
-                if !target_path.ends_with(path::MAIN_SEPARATOR) {
-                    // target_path.push_str(path::MAIN_SEPARATOR.to_string().as_str());
-                    target_path.push('/');
-                }
-
-                target_path.push_str(path_part);
+            // If target_path does not end with a path separator, add one
+            if !target_path.ends_with(path::MAIN_SEPARATOR) {
+                // target_path.push_str(path::MAIN_SEPARATOR.to_string().as_str());
+                target_path.push('/');
             }
 
-            // Check if that target already exists in mapped_files; if not found, create a new entry
-            if let Some(existing_mapping) = mapped_files.iter_mut().find(|x| {
-                println!("Checking if x.1 == target ({} == {}) and file {}", x.1, target_path, rel_file);
-                x.1 == target_path
-            }) {
-                existing_mapping.0.push(rel_file);
-            } else {
-                mapped_files.push((vec![rel_file], target_path));
-            }
+            target_path.push_str(path_part);
         }
+        println!("counting {} for rel path {} and target {}", mapped_files.iter_mut().count(), rel_file, target_path);
+        // Check if that target already exists in mapped_files; if not found, create a new entry
+        if let Some(existing_mapping) = mapped_files.iter_mut().find(|x| {
+            println!("Checking if x.1 == target ({} == {}) and file {}", x.1, target_path, rel_file);
+            x.1 == target_path
+        }) {
+            existing_mapping.0.push(rel_file);
+        } else {
+            mapped_files.push((vec![rel_file], target_path));
+        }
+        
     }
 
     println!("Mapped files: {:?}", mapped_files);
