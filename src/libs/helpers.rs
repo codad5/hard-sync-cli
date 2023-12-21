@@ -114,6 +114,10 @@ pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: Stri
     println!("Base: {}", base);
     
     let mut mapped_files: Vec<(Vec<String>, String)> = Vec::new();
+    // change all separators for target to /
+    println!("Before Target: {}", target);
+    let target = target.replace(path::MAIN_SEPARATOR, "/");
+    println!("Target: {}", target);
 
     for file in files_to_copy {
         // Remove base path from file
@@ -134,7 +138,7 @@ pub fn map_path_to_target(files_to_copy: Vec<String>, target: String, base: Stri
             }
 
             // If target_path does not end with a path separator, add one
-            if !target_path.ends_with(path::MAIN_SEPARATOR) {
+            if !target_path.ends_with(path::MAIN_SEPARATOR) || !target_path.ends_with("/") {
                 // target_path.push_str(path::MAIN_SEPARATOR.to_string().as_str());
                 target_path.push('/');
             }

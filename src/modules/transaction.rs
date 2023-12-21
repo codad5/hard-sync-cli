@@ -310,10 +310,9 @@ impl Transaction {
             // content_only : true,
             ..Default::default()
         };
-        let base_p = Path::new(&self.base);
         println!("files_to_copy: {:?}", files_to_copy);
         let files_to_copy = files_to_copy.to_vec();
-        let mapped_file_to_tar = map_path_to_target(files_to_copy, self.target.clone(), base_p.parent().unwrap().to_str().unwrap().to_string());
+        let mapped_file_to_tar = map_path_to_target(files_to_copy, self.target.clone(), self.base.clone());
         println!("mapped_file_to_tar: {:?}", mapped_file_to_tar);
         for (files_to_copy, tar) in mapped_file_to_tar {
             match copy_items_with_progress(&files_to_copy, &tar, &options, file_copy_process_handler) {
