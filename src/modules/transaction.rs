@@ -184,19 +184,20 @@ impl Transaction {
         let mut data: Vec<PathTransactionData> = Vec::new();
         let mut stdout = stdout();
         stdout.execute(cursor::Hide).unwrap();
+        stdout.queue(cursor::SavePosition).unwrap();
+        println!("Generating Lock Data for: {:?}", path);
         for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
-            stdout.queue(cursor::SavePosition).unwrap();
-            println!("Generating Lock Data for: {:?}", path);
-            stdout.queue(cursor::RestorePosition).unwrap();
-            stdout.flush().unwrap();
-            thread::sleep(Duration::from_millis(100));
-            stdout.queue(cursor::RestorePosition).unwrap();
-            stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
             let file_path = entry.path();
             // if the part is a hard-sync directory or is base directory, skip it
             if file_path.ends_with(".hard-sync") || entry.path() == path || file_path.ends_with("hard-sync.lock") {
                 continue;
             }
+            
+            // if depth is greater than 1, skip it
+            if entry.depth() > 0 {
+                continue;
+            }
+
             let metadata = fs::metadata(file_path).unwrap();
             let last_modified = metadata.modified().unwrap();
             let last_accessed = metadata.accessed().unwrap();
