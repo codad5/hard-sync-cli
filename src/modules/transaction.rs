@@ -187,10 +187,11 @@ impl Transaction {
         for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
             stdout.queue(cursor::SavePosition).unwrap();
             println!("Generating Lock Data for: {:?}", path);
-            println!("\rentry: {}", entry.path().to_str().unwrap().green());
             stdout.queue(cursor::RestorePosition).unwrap();
             stdout.flush().unwrap();
             thread::sleep(Duration::from_millis(100));
+            stdout.queue(cursor::RestorePosition).unwrap();
+            stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
             let file_path = entry.path();
             // if the part is a hard-sync directory or is base directory, skip it
             if file_path.ends_with(".hard-sync") || entry.path() == path || file_path.ends_with("hard-sync.lock") {
@@ -222,6 +223,8 @@ impl Transaction {
         }
         stdout.queue(cursor::RestorePosition).unwrap();
         stdout.flush().unwrap();
+        stdout.queue(cursor::RestorePosition).unwrap();
+        stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
         let total_files = data.len();
         // stdout.write_all(format!("\n Generated Lock data for path: {:?} found {} files", path, total_files.to_string().blue()).as_bytes()).unwrap();
         println!("\n Generated Lock data for path: {:?} found {} files", path, total_files.to_string().blue());
