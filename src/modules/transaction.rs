@@ -2,7 +2,7 @@ use std::{path::{PathBuf, Path}, fs::{File, OpenOptions, self}, io::{BufReader, 
 use chrono::{Local, DateTime};
 use log::{info, trace};
 use serde::{Serialize, Deserialize};
-use walkdir::WalkDir;
+use walkdir::{WalkDir, DirEntry};
 use colored::Colorize;
 use std::thread;
 use fs_extra::copy_items_with_progress;
@@ -180,47 +180,59 @@ impl Transaction {
         Transaction::save_lock_data(&PathBuf::from(self.target.clone()), lock_data);
     }
 
+    fn filter_walk_dir_entry(entry : &DirEntry) -> bool {
+        let file_path = entry.path();
+        // if the part is a hard-sync directory or is base directory, skip it
+        if file_path.ends_with(".hard-sync") || file_path.ends_with("hard-sync.lock") {
+            return false;
+        }
+        
+        // if depth is greater than 1, skip it
+        if entry.depth() > 0 {
+            return false;
+        }
+        return true;
+    }
+
     fn get_save_data_path_transaction_data(path : &PathBuf) -> Vec<PathTransactionData> {
         let mut data: Vec<PathTransactionData> = Vec::new();
         let mut stdout = stdout();
         stdout.execute(cursor::Hide).unwrap();
         stdout.queue(cursor::SavePosition).unwrap();
         println!("Generating Lock Data for: {:?}", path);
-        for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
-            let file_path = entry.path();
-            // if the part is a hard-sync directory or is base directory, skip it
-            if file_path.ends_with(".hard-sync") || entry.path() == path || file_path.ends_with("hard-sync.lock") {
-                continue;
-            }
-            
-            // if depth is greater than 1, skip it
-            if entry.depth() > 0 {
-                continue;
-            }
+        if let Ok(entries) = fs::read_dir(path) {
+            let entries = entries.into_iter().filter_map(|e| e.ok());
+            for entry in entries {
+                let file_path = entry.path();
+                // if the part is a hard-sync directory or is base directory, skip it
+                if file_path.ends_with(".hard-sync") || entry.path() == path.clone() || file_path.ends_with("hard-sync.lock") {
+                    continue;
+                }
 
-            let metadata = fs::metadata(file_path).unwrap();
-            let last_modified = metadata.modified().unwrap();
-            let last_accessed = metadata.accessed().unwrap();
-            let created = metadata.created().unwrap();
-            let size = metadata.len();
-            let is_dir = metadata.is_dir();
-            let path = get_relative_path(path.to_str().unwrap(), file_path.to_str().unwrap()).unwrap();
-            stdout.queue(cursor::SavePosition).unwrap();
-            // stdout.write_all(format!("\rFound path: {}", path.as_str().green()).as_bytes()).unwrap();
-            println!("\rFound path: {}", path.as_str().green());
-            stdout.queue(cursor::RestorePosition).unwrap();
-            stdout.flush().unwrap();
-            thread::sleep(Duration::from_millis(100));
-            data.push(PathTransactionData {
-                path,
-                last_modified : system_time_to_u64(last_modified),
-                last_accessed : system_time_to_u64(last_accessed),
-                created : system_time_to_u64(created),
-                size : size.to_string(),
-                is_dir,
-            });
-            stdout.queue(cursor::RestorePosition).unwrap();
-            stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
+                let metadata = fs::metadata(file_path.clone()).unwrap();
+                let last_modified = metadata.modified().unwrap();
+                let last_accessed = metadata.accessed().unwrap();
+                let created = metadata.created().unwrap();
+                let size = metadata.len();
+                let is_dir = metadata.is_dir();
+                let path = get_relative_path(path.to_str().unwrap(), file_path.to_str().unwrap()).unwrap();
+                stdout.queue(cursor::SavePosition).unwrap();
+                // stdout.write_all(format!("\rFound path: {}", path.as_str().green()).as_bytes()).unwrap();
+                println!("\rFound path: {}", path.as_str().green());
+                stdout.queue(cursor::RestorePosition).unwrap();
+                stdout.flush().unwrap();
+                thread::sleep(Duration::from_millis(100));
+                data.push(PathTransactionData {
+                    path,
+                    last_modified : system_time_to_u64(last_modified),
+                    last_accessed : system_time_to_u64(last_accessed),
+                    created : system_time_to_u64(created),
+                    size : size.to_string(),
+                    is_dir,
+                });
+                stdout.queue(cursor::RestorePosition).unwrap();
+                stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
+            }
         }
         stdout.queue(cursor::RestorePosition).unwrap();
         stdout.flush().unwrap();
