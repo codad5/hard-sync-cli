@@ -48,10 +48,12 @@ pub fn sync(x : &Fli){
         return;
     }
 
-    let mut paths_as_string : [String; 2] = match x.is_passed("reverse".to_owned()) {
-        true => [target.to_str().unwrap().to_string(), base.to_str().unwrap().to_string()],
-        false => [base.to_str().unwrap().to_string(), target.to_str().unwrap().to_string()]
-    };
+    let mut paths_as_string : [String; 2]  = [base.to_str().unwrap().to_string(), target.to_str().unwrap().to_string()]; 
+
+    if x.is_passed("reverse".to_owned()) {
+        paths_as_string.reverse();
+    }
+
     let [base_path, target_path] = [paths_as_string[0].clone(), paths_as_string[1].clone()];
 
     let mut transaction = get_transaction(base_path, target_path);
@@ -62,7 +64,7 @@ pub fn sync(x : &Fli){
         println!("Syncing Backwards");
         let [base_path, target_path] = [paths_as_string[1].clone(), paths_as_string[0].clone()];
         let mut transaction = get_transaction(base_path, target_path);
-        
+        transaction.prepare();
         transaction.sync();
     }
 
