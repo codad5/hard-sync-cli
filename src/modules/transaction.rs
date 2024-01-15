@@ -34,15 +34,13 @@ pub struct Transaction {
 // basic 
 impl Transaction {
     pub fn new(base: String, target: String) -> Transaction {
-        let mut t = Transaction {
+        Transaction {
             base,
             target,
             base_data : Vec::new(),
             target_data : Vec::new(),
             last_updated : [Local::now(), Local::now()],
-        };
-        return t;
-
+        }
     }
 
     pub fn get_base_data(&mut self) -> &Vec<PathTransactionData> {
@@ -72,11 +70,11 @@ impl Transaction {
 
 
    pub fn load_base_data(&mut self) {
-        self.base_data = Transaction::get_lock_data(&PathBuf::from(self.base.clone()));
+        self.base_data = Transaction::get_lock_data(PathBuf::from(self.base.clone()));
     }
 
     pub fn load_target_data(&mut self) {
-        self.target_data = Transaction::get_lock_data(&PathBuf::from(self.target.clone()));
+        self.target_data = Transaction::get_lock_data(PathBuf::from(self.target.clone()));
     }
 
     pub fn save_base_data(&self) {
@@ -87,7 +85,7 @@ impl Transaction {
 
 //path handling
 impl Transaction {
-        pub fn resolve_lock(path: &PathBuf) -> File {
+        pub fn resolve_lock(path: PathBuf) -> File {
         // Construct the lock file path by appending ".hard-sync/hard-sync.lock" to the directory
         let lock_path = path.join(".hard-sync/hard-sync.lock");
         // Create the parent directories if they don't exist
@@ -123,19 +121,19 @@ impl Transaction {
 
     pub fn get_base_lock(&self) -> File {
         let hard_sync_path = self.get_base_hard_sync_path();
-        return Transaction::resolve_lock(&hard_sync_path);
+        return Transaction::resolve_lock(hard_sync_path);
     }
 
     pub fn get_target_lock(&self) -> File {
         let hard_sync_path = self.get_target_hard_sync_path();
-        return Transaction::resolve_lock(&hard_sync_path);
+        return Transaction::resolve_lock(hard_sync_path);
     }
 }
 
 
 // data handling getting lock data
 impl Transaction {
-    fn get_lock_data(path: &PathBuf) -> Vec<PathTransactionData> {
+    fn get_lock_data(path: PathBuf) -> Vec<PathTransactionData> {
         let mut data: Vec<PathTransactionData> = Vec::new();
         let lock_file = Transaction::resolve_lock(path);
         // println!("lock_file: {:?}", lock_file);
@@ -158,7 +156,7 @@ impl Transaction {
         return data;
     }
 
-    fn save_lock_data(path : &PathBuf, data : Vec<PathTransactionData>) {
+    fn save_lock_data(path : PathBuf, data : Vec<PathTransactionData>) {
         // write to lock file
         let mut lock_file = Transaction::resolve_lock(path);
         // clean or empty the file
@@ -172,12 +170,12 @@ impl Transaction {
 
     pub fn save_base_lock_data(&self) {
         let mut lock_data = self.get_base_save_data();
-        Transaction::save_lock_data(&PathBuf::from(self.base.clone()), lock_data);
+        Transaction::save_lock_data(PathBuf::from(self.base.clone()), lock_data);
     }
 
     pub fn save_target_lock_data(&self) {
         let mut lock_data = self.get_target_save_data();
-        Transaction::save_lock_data(&PathBuf::from(self.target.clone()), lock_data);
+        Transaction::save_lock_data(PathBuf::from(self.target.clone()), lock_data);
     }
 
     fn get_save_data_path_transaction_data(path : &PathBuf) -> Vec<PathTransactionData> {
