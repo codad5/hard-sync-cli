@@ -210,6 +210,9 @@ impl DirTracker {
         }
         let ignore = std::fs::read_to_string(ignore).unwrap();
         for line in ignore.lines() {
+            if line.starts_with("#") {
+                continue;
+            }
             self.add_ignore(line.to_string());
         }
         Ok(())

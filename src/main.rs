@@ -112,6 +112,9 @@ fn sync_callback(x: &Fli) {
             file.get_path().to_string(),
             dest_file.to_str().unwrap().to_string(),
         )).print();
+        if !dest_file.parent().unwrap().exists() {
+            fs::create_dir_all(dest_file.parent().unwrap()).unwrap();
+        }
         fs::copy(file.get_path(), dest_file.clone()).unwrap();
         Step::Completed(format!("Copied file to {:?}", dest_file)).print();
 
