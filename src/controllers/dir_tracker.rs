@@ -13,7 +13,7 @@ pub struct DirTracker {
     created: u64,
 
     // dir contents
-    sub_dirs: Vec<DirTracker>,
+    ignore: Vec<String>, // the ignore file is to be placed in the destination directory but refrerencing path relative to the source directory
     files: HashMap<String, FileTracker>, // Key is the file relative path
 }
 
@@ -36,18 +36,19 @@ impl DirTracker {
             size,
             last_modified,
             created,
-            sub_dirs: Vec::new(),
+            ignore: Vec::new(),
             files: HashMap::new(),
         })
-    }
-
-    pub fn add_sub_dir(&mut self, sub_dir: DirTracker) {
-        self.sub_dirs.push(sub_dir);
     }
 
     pub fn add_file(&mut self, file: FileTracker) {
         self.files.insert(file.get_relative_path(Path::new(&self.path)).to_string(), file);
     }
+
+    pub fn add_ignore(&mut self, ignore: String) {
+        self.ignore.push(ignore);
+    }
+
 }
 
 //  getter methods
@@ -68,8 +69,8 @@ impl DirTracker {
         self.created
     }
 
-    pub fn get_sub_dirs(&self) -> &Vec<DirTracker> {
-        &self.sub_dirs
+    pub fn get_ignore(&self) -> Vec<String> {
+        self.ignore.clone()
     }
 
     pub fn get_files(&self) -> Vec<FileTracker> {
@@ -134,5 +135,73 @@ impl DirTracker {
             }
         }
         diff
+    }
+    pub fn dir_initialized(&self) -> Result<(), String> {
+        // look for .hard_sync_cli in first level
+        let dir = Path::new(&self.path);
+        if !dir.exists() {
+            return Err("Directory does not exist".to_string());
+        }
+        // check if .hard_sync_cli exists
+        let hard_sync_cli = dir.join(".hard_sync_cli");
+        if !hard_sync_cli.exists() {
+            return Err("Directory is not initalized".to_string());
+        }
+        Ok(())
+    }
+
+    pub fn setup_dir_config(&mut self) -> Result<(), String> {
+        // create .hard_sync_cli
+        let dir = Path::new(&self.path);
+        // check if .hard_sync_cli exists
+        if !dir.exists() {
+            return Err("Directory does not exist".to_string());
+        }
+        if !dir.is_dir() {
+            return Err("Path is not a directory".to_string());
+        }
+        let hard_sync_cli = dir.join(".hard_sync_cli");
+        if hard_sync_cli.exists() {
+            return Err("Directory is already initalized".to_string());
+        }
+        self.import_files_from_directory(true);
+        std::fs::create_dir(hard_sync_cli.clone()).unwrap();
+        // create the tracker.json file
+        let tracker = hard_sync_cli.join("tracker.json");
+        let tracker = std::fs::File::create(tracker).unwrap();
+        let tracker = serde_json::to_writer(tracker, self).unwrap();
+        Ok(())
+    }
+
+    //  to update the tracker.json file
+    pub fn update_tracker(&self) -> Result<(), String> {
+        let dir = Path::new(&self.path);
+        let hard_sync_cli = dir.join(".hard_sync_cli");
+        let tracker = hard_sync_cli.join("tracker.json");
+        // check if .hard_sync_cli/tracker.json exists
+        if !tracker.exists() {
+            return Err("Tracker file does not exist".to_string());
+        }
+        // dont create a new file, just update the existing one
+        let tracker = std::fs::OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(tracker)
+            .unwrap();
+        let tracker = serde_json::to_writer(tracker, self).unwrap();
+        Ok(())
+    }
+
+    pub fn load_ignore(&mut self) -> Result<(), String> {
+        let dir = Path::new(&self.path);
+        let ignore = dir.join("hard_sync.ignore");
+        if !ignore.exists() {
+            return Err("Ignore file does not exist".to_string());
+        }
+        let ignore = std::fs::read_to_string(ignore).unwrap();
+        for line in ignore.lines() {
+            self.add_ignore(line.to_string());
+        }
+        Ok(())
     }
 }

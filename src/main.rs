@@ -1,15 +1,20 @@
+mod helpers;
 mod controllers;
 use std::{fs, path::Path};
 
+use colored::Colorize;
 use controllers::{dir_tracker::DirTracker, file_tracker::FileTracker};
 use fli::{init_fli_from_toml, Fli};
+use helpers::logger::{print_error, print_success, Step};
 
 // hard sync cli a cli tool for syncing 2 directories similar to rsync but with a few more features
 fn main() {
+    println!("{}", "Hard Sync CLI".cyan());
     let mut app = init_fli_from_toml!();
     let mut sync = app.command("sync", "Syncs 2 directories");
     sync.option("-s --src, <>", "Source Directory", sync_callback);
     sync.option("-d --dest, <>", "Destination Directory", sync_callback);
+    sync.option("-i --init", "Initialize the directory", sync_callback);
     sync.allow_duplicate_callback(false);
 
     let mut test = app.command("test", "Test command");
@@ -22,7 +27,7 @@ fn sync_callback(x: &Fli) {
     let src = match x.get_values("src".to_string()) {
         Ok(v) => v.first().unwrap().clone(),
         Err(e) => {
-            println!("{}", e);
+            print_error(&e);
             return;
         }
     };
@@ -30,7 +35,7 @@ fn sync_callback(x: &Fli) {
     let dest = match x.get_values("dest".to_string()) {
         Ok(v) => v.first().unwrap().clone(),
         Err(e) => {
-            println!("{}", e);
+            print_error(&e);
             return;
         }
     };
@@ -42,17 +47,72 @@ fn sync_callback(x: &Fli) {
     // if the dir does not exist and -n is not passed then create the dir
     if !x.is_passed("-n".to_owned()) {
         if !src.exists() {
-            println!("Source directory does not exist");
+            print_error("Source directory does not exist");
             return;
         }
 
         if !dest.exists() {
-            println!("Destination directory does not exist");
+            print_error("Destination directory does not exist");
             return;
         }
     }
 
-    println!("Syncing {:?} to {:?}", src, dest);
+    // check if path are same 
+    if src == dest {
+        print_error("Source and destination directories are same");
+        return;
+    }
+    
+
+    Step::Syncing(format!("Syncing {:?} to {:?}", src, dest)).print();
+    let mut src_dir = DirTracker::new(src).unwrap();
+    let mut dest_dir = DirTracker::new(dest).unwrap();
+
+    if dest_dir.dir_initialized().is_err() {
+        if !x.is_passed("-i".to_owned()) {
+            print_error("Source directory is not initialized");
+            return;
+        }
+        Step::Start("Setting up source directory".to_string()).print();
+        match dest_dir.setup_dir_config() {
+            Ok(_) => {
+                print_success("Source directory initialized");
+            }
+            Err(e) => {
+                print_error(&e);
+                return;
+            }
+        }
+    }
+
+    Step::Start("Loading Diff".to_string()).print();
+    src_dir.import_files_from_directory(true);
+    dest_dir.import_files_from_directory(true);
+    let diff = src_dir.get_dir_diff(&dest_dir);
+    if diff.len() == 0 {
+        print_success("No diff found");
+    }
+    for file in diff {
+        let status = match dest_dir.get_file(file.get_relative_path(Path::new(&src_dir.get_path()))) {
+            Some(_) => "Modified".yellow(),
+            None => "New".green(),
+        };
+        println!(
+            "{} file path: {}",
+            status,
+            file.get_relative_path(Path::new(&src_dir.get_path()))
+        );
+        // copy the file
+        let dest_file = dest.join(file.get_relative_path(Path::new(&src_dir.get_path())));
+        Step::Copying((
+            file.get_path().to_string(),
+            dest_file.to_str().unwrap().to_string(),
+        )).print();
+        fs::copy(file.get_path(), dest_file.clone()).unwrap();
+        Step::Completed(format!("Copied file to {:?}", dest_file)).print();
+
+    }
+
 }
 
 fn test_callback(x: &Fli) {
