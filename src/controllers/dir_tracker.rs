@@ -1,6 +1,8 @@
 use super::file_tracker::FileTracker;
 use std::{collections::HashMap, path::Path};
 use walkdir::WalkDir;
+use serde::{Deserialize, Serialize};
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirTracker {
     // path of the directory
     path: String,
@@ -9,7 +11,6 @@ pub struct DirTracker {
     size: u64,
     last_modified: u64,
     created: u64,
-    is_dir: bool,
 
     // dir contents
     sub_dirs: Vec<DirTracker>,
@@ -18,19 +19,23 @@ pub struct DirTracker {
 
 impl DirTracker {
     pub fn new(path: &Path) -> Result<DirTracker, String> {
+        if !path.exists() {
+            return Err("Path does not exist".to_string());
+        }
         let metadata = path.metadata().unwrap();
+        if !metadata.is_dir() {
+            return Err("Path is not a directory".to_string());
+        }
         let path = path.to_str().unwrap().to_string();
         let size = metadata.len();
         let last_modified = metadata.modified().unwrap().elapsed().unwrap().as_secs();
         let created = metadata.created().unwrap().elapsed().unwrap().as_secs();
-        let is_dir = metadata.is_dir();
 
         Ok(DirTracker {
             path,
             size,
             last_modified,
             created,
-            is_dir,
             sub_dirs: Vec::new(),
             files: HashMap::new(),
         })
@@ -61,10 +66,6 @@ impl DirTracker {
 
     pub fn get_created(&self) -> u64 {
         self.created
-    }
-
-    pub fn is_dir(&self) -> bool {
-        self.is_dir
     }
 
     pub fn get_sub_dirs(&self) -> &Vec<DirTracker> {

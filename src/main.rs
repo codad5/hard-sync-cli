@@ -117,4 +117,8 @@ fn test_callback(x: &Fli) {
             file.get_relative_path(Path::new(&dir.get_path()))
         );
     }
+
+    // print the json of dir
+    let json_form = serde_json::to_string_pretty(&dir).unwrap();
+    println!("Json form : {}", json_form);
 }
