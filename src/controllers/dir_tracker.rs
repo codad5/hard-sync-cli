@@ -1,21 +1,19 @@
-use std::path::Path;
 use super::file_tracker::FileTracker;
+use std::{collections::HashMap, path::Path};
 use walkdir::WalkDir;
-pub struct DirTracker{
+pub struct DirTracker {
     // path of the directory
-    path : String,
+    path: String,
 
-    // meta data 
-    size : u64,
-    last_modified : u64,
-    created : u64,
-    is_dir : bool,
-
+    // meta data
+    size: u64,
+    last_modified: u64,
+    created: u64,
+    is_dir: bool,
 
     // dir contents
-    sub_dirs : Vec<DirTracker>,
-    files: Vec<FileTracker>
-
+    sub_dirs: Vec<DirTracker>,
+    files: HashMap<String, FileTracker>, // Key is the file relative path
 }
 
 impl DirTracker {
@@ -34,7 +32,7 @@ impl DirTracker {
             created,
             is_dir,
             sub_dirs: Vec::new(),
-            files: Vec::new()
+            files: HashMap::new(),
         })
     }
 
@@ -43,10 +41,9 @@ impl DirTracker {
     }
 
     pub fn add_file(&mut self, file: FileTracker) {
-        self.files.push(file);
+        self.files.insert(file.get_relative_path(Path::new(&self.path)).to_string(), file);
     }
 }
-
 
 //  getter methods
 impl DirTracker {
@@ -74,53 +71,67 @@ impl DirTracker {
         &self.sub_dirs
     }
 
-    pub fn get_files(&self) -> &Vec<FileTracker> {
+    pub fn get_files(&self) -> Vec<FileTracker> {
+        self.files.values().cloned().collect()
+    }
+
+    pub fn get_file_hashmap(&self) -> &HashMap<String, FileTracker> {
         &self.files
+    }
+
+    pub fn get_file(&self, file_path: &str) -> Option<&FileTracker> {
+        self.files.get(file_path)
+    }
+
+    pub fn has_file(&self, file_path: &str) -> bool {
+        self.files.contains_key(file_path)
     }
 }
 
-
 //  implentation to get / load all the files and sub directories
 impl DirTracker {
-    pub fn load_files_from_self(&mut self, recursive: bool) {
+    pub fn import_files_from_directory(&mut self, recursive: bool) {
         let dir = Path::new(&self.path);
         let mut walker = WalkDir::new(dir);
         if !recursive {
             walker = walker.max_depth(1);
         }
         let walker = walker.into_iter();
-        let mut files = Vec::new();
-        for entry in walker.filter_map(Result::ok).filter(|e| e.file_type().is_file()) {
+        let mut files = HashMap::new();
+        for entry in walker
+            .filter_map(Result::ok)
+            .filter(|e| e.file_type().is_file())
+        {
             let metadata = entry.metadata().unwrap();
             if metadata.is_file() {
                 let file_path = entry.path();
-                files.push(FileTracker::new(file_path.to_str().unwrap()).unwrap());
+                files.insert(
+                    // relative path
+                    file_path
+                        .strip_prefix(Path::new(&self.path))
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
+                    FileTracker::new(file_path.to_str().unwrap()).unwrap(),
+                );
             }
         }
 
         self.files = files;
-
     }
 
     pub fn get_dir_diff(&self, other: &DirTracker) -> Vec<FileTracker> {
         let mut diff = Vec::new();
-        for file in &self.files {
-            let mut found = false;
-            for other_file in &other.files {
-                if file.get_relative_path(Path::new(&self.path)) == other_file.get_relative_path(Path::new(&other.path)) {
-                    found = true;
-                    if file.get_last_file_hash() != other_file.get_last_file_hash() {
-                        diff.push(file.clone());
-                    }
-                    break;
+        for (key, file) in &self.files {
+            if let Some(other_file) = other.files.get(key) {
+                if file.get_last_file_hash() != other_file.get_last_file_hash() {
+                    diff.push(file.clone());
                 }
-            }
-            if !found {
+            } else {
                 diff.push(file.clone());
             }
         }
-
         diff
     }
 }
-
