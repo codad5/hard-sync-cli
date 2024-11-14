@@ -6,6 +6,7 @@ pub enum Step {
     Syncing(String),
     Copying((String, String)),
     Completed(String),
+    Ignored(String),
 }
 
 impl Step {
@@ -16,6 +17,7 @@ impl Step {
             Step::Syncing(message) => format!("{}: {}", "Syncing".cyan(), message),
             Step::Copying((src, dest)) => format!("{}: {} to {}", "Copying".cyan(), src, dest),
             Step::Completed(message) => format!("{}: {}", "Completed".cyan(), message),
+            Step::Ignored(message) => format!("{}: {}", "Ignored".cyan(), message),
         }
     }
 

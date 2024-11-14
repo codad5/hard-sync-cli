@@ -1,5 +1,6 @@
 use super::file_tracker::FileTracker;
 use std::{collections::HashMap, path::Path};
+use regex::Regex;
 use walkdir::WalkDir;
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -87,6 +88,15 @@ impl DirTracker {
 
     pub fn has_file(&self, file_path: &str) -> bool {
         self.files.contains_key(file_path)
+    }
+
+    pub fn is_in_ignore(&self, file_path: &str) -> bool {
+        for ignore in &self.ignore {
+            if file_path.contains(ignore) {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -203,5 +213,15 @@ impl DirTracker {
             self.add_ignore(line.to_string());
         }
         Ok(())
+    }
+
+    pub fn is_ignored(&self, file_path: &str) -> bool {
+        for ignore in &self.ignore {
+            let reg = Regex::new(ignore).unwrap();
+            if reg.is_match(file_path) {
+                return true;
+            }
+        }
+        false
     }
 }

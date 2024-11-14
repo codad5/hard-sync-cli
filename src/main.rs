@@ -104,6 +104,10 @@ fn sync_callback(x: &Fli) {
         );
         // copy the file
         let dest_file = dest.join(file.get_relative_path(Path::new(&src_dir.get_path())));
+        if dest_dir.load_ignore().is_ok() && dest_dir.is_ignored( &file.get_relative_path(Path::new(&src_dir.get_path()))) {
+            Step::Ignored(format!("Ignoring file {:?}", file.get_relative_path(Path::new(&src_dir.get_path())))).print();
+            continue;
+        }
         Step::Copying((
             file.get_path().to_string(),
             dest_file.to_str().unwrap().to_string(),
