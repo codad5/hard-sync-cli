@@ -89,15 +89,6 @@ impl DirTracker {
     pub fn has_file(&self, file_path: &str) -> bool {
         self.files.contains_key(file_path)
     }
-
-    pub fn is_in_ignore(&self, file_path: &str) -> bool {
-        for ignore in &self.ignore {
-            if file_path.contains(ignore) {
-                return true;
-            }
-        }
-        false
-    }
 }
 
 //  implentation to get / load all the files and sub directories
