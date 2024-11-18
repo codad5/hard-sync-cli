@@ -47,7 +47,7 @@ fn sync_callback(x: &Fli) {
     // if the dir does not exist and -n is not passed then create the dir
     if !x.is_passed("-n".to_owned()) {
         if !src.exists() {
-            print_error("Source directory does not exist");
+            print_error(format!("Source directory {:?} does not exist", src).as_str());
             return;
         }
 
@@ -70,7 +70,7 @@ fn sync_callback(x: &Fli) {
 
     if dest_dir.dir_initialized().is_err() {
         if !x.is_passed("-i".to_owned()) {
-            print_error("Source directory is not initialized");
+            print_error("Dest directory is not initialized pass -i to initailise it.");
             return;
         }
         Step::Start("Setting up source directory".to_string()).print();
@@ -117,7 +117,6 @@ fn sync_callback(x: &Fli) {
         }
         fs::copy(file.get_path(), dest_file.clone()).unwrap();
         Step::Completed(format!("Copied file to {:?}", dest_file)).print();
-
     }
 
 }
