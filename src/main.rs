@@ -42,7 +42,7 @@ fn sync_callback(x: &Fli) {
     };
 
     // get path of src and dest
-    let (src, dest) = match x.is_passed("reverse".to_owned()) {
+    let (src, dest) = match !x.is_passed("reverse".to_owned()) {
                 true => (Path::new(&src), Path::new(&dest)),
                 false => (Path::new(&dest), Path::new(&src))
     };
