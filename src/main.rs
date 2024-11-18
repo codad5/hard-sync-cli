@@ -92,7 +92,8 @@ fn sync_callback(x: &Fli) {
     if diff.len() == 0 {
         print_success("No diff found");
     }
-    for file in diff {
+    let mut ignore_count = 0;
+    for file in &diff {
         let status = match dest_dir.get_file(file.get_relative_path(Path::new(&src_dir.get_path()))) {
             Some(_) => "Modified".yellow(),
             None => "New".green(),
@@ -105,7 +106,8 @@ fn sync_callback(x: &Fli) {
         // copy the file
         let dest_file = dest.join(file.get_relative_path(Path::new(&src_dir.get_path())));
         if dest_dir.load_ignore().is_ok() && dest_dir.is_ignored( &file.get_relative_path(Path::new(&src_dir.get_path()))) {
-            Step::Ignored(format!("Ignoring file {:?}", file.get_relative_path(Path::new(&src_dir.get_path())))).print();
+            // Step::Ignored(format!("Ignoring file {:?}", file.get_relative_path(Path::new(&src_dir.get_path())))).print();
+            ignore_count+=1;
             continue;
         }
         Step::Copying((
@@ -118,6 +120,8 @@ fn sync_callback(x: &Fli) {
         fs::copy(file.get_path(), dest_file.clone()).unwrap();
         Step::Completed(format!("Copied file to {:?}", dest_file)).print();
     }
+    print_success(format!("{} files copied", format!("{}", diff.len() - ignore_count).blue()).as_str());
+    print_success(format!("{} files ignored", format!("{}", ignore_count).red()).as_str());
 
 }
 

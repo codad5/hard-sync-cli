@@ -1,65 +1,155 @@
-# Hard-Sync-Cli 
-This is a simple cli tool to sync files between two directories. It is written in Rust
+# Hard-Sync-CLI 
 
-## Reason for creation
-I mainly created this project for two reasons:
-- I wanted to learn Rust and this was a good project to start with (cause probably another tool like this already exists)
-- I wanted to sync my files between my laptop and my external hard drive(esp my-movies), and not having to think about which files to copy and dealing with windows `similar file exists` dialog box was a pain. So I created this tool to do it for me.
+**Hard-Sync-CLI** is a simple and efficient command-line tool to sync files between two directories. It is written in **Rust** for speed and reliability. 
 
-## Installation
-### From source
+---
+
+## 🚀 **Why Hard-Sync-CLI?**
+
+I built this project for two main reasons:
+
+1. **Learning Rust**: This project helped me learn Rust through hands-on experience.
+2. **Practical Use**: I needed an easier way to sync files between my laptop and external hard drive (e.g., my movie collection) without the headache of dealing with duplicate file dialogs or manual comparisons.
+
+---
+
+## 📥 **Installation**
+
+### Install From Source
 #### Prerequisites
-- Rust
-- Cargo
+- **Rust** (including `cargo`) installed on your system. [Get Rust](https://www.rust-lang.org/tools/install)
+
 #### Steps
-1. Clone the repository
-2. Run `cargo install --path .` in the root directory of the repository
-3. Run `hard-sync-cli` to see the help message
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/your-username/hard-sync-cli.git
+   cd hard-sync-cli
+   ```
 
-### From binary
-#### Steps
-1. Download the binary from the [releases]()
-2. Run `hard-sync-cli` to see the help message
+2. Install the CLI tool globally using `cargo`:
+   ```bash
+   cargo install --path .
+   ```
 
-## Usage
+3. Run the tool to confirm installation:
+   ```bash
+   hsync --help
+   ```
 
-### Help
-To see the help message, run
+### Install From Binary
+1. Download the prebuilt binary from the [Releases Page](#) (coming soon).
+2. Add the binary to your system PATH (if needed).
+3. Run the tool:
+   ```bash
+   hsync --help
+   ```
+
+---
+
+## 💻 **Usage**
+
+### General Help
+To see the help message, run:
 ```bash
-hard-sync-cli --help || hard-sync-cli -h
+hsync --help
 ```
 
-### Syncing
-To sync two directories, run
+---
+
+### Syncing Directories
+To sync files between two directories, use the following command:
 ```bash
-hard-sync-cli sync <source> <destination>
+hsync sync --src <source_directory> --dest <destination_directory>
 ```
-##### How it works
-- This will sync the files from the source directory to the destination directory. 
-- If a file exists in the destination directory but not in the source directory, it will be *WONT BE* deleted. 
-- If a file exists in the source directory but not in the destination directory, it will be copied to the destination directory.
-- If a file exists in both directories, it would check if the file in the source directory is newer or recently modified than the file in the destination directory. If it is, it will be copied to the destination directory. If not, Nothing will happen to the file in the destination directory.
 
-##### Available options
-- `-i, --init` : This will initialize hard-sync metadata in any of the directories where `hard-sync-cli` have not been initialized. 
-> Note: This is required for first time syncing between two directories. If you have already synced two directories, you don't need to use this option again.
-- `-r, -reverse` : This will reverse the source and destination directories. This means that the source directory will be the destination directory and the destination directory will be the source directory.
-- `-b --both` : This will sync both directories. This means that the files in the source directory will be copied to the destination directory and the files in the destination directory will be copied to the source directory.
+#### **How It Works**
+- **Files in Source Not in Destination**: Copied to the destination directory.
+- **Files in Destination Not in Source**: *Ignored* (not deleted).
+- **Modified Files**: If the source version is newer, it replaces the destination version. Otherwise, no changes occur.
 
+#### **Options for `sync`**
+| **Flag**          | **Short-Hand** | **Description**                                                                 |
+|--------------------|----------------|---------------------------------------------------------------------------------|
+| `--init`          | `-i`           | Initializes Hard-Sync metadata in the destination folder. Required for first-time syncing. |
+| `--reverse`       | `-r`           | Reverses the source and destination directories (syncs in the opposite direction). |
+| `--both`          | `-b`           | Synchronizes both directions (source to destination and destination to source). |
+| `--src <path>`    | `-s <path>`    | Specifies the source directory to sync from.                                    |
+| `--dest <path>`   | `-d <path>`    | Specifies the destination directory to sync to.                                |
 
-### Tools and Libraries used
-- [Fli](https://github.com/codad5/fli) - A Rust library for parsing command line arguments like commander.js
-- [walkdir](https://crates.io/crates/walkdir) - A Rust library for walking through directories recursively
-- [chrono](https://crates.io/crates/chrono) - A Rust library for dealing with time
-- [fs_extra](https://crates.io/crates/fs_extra) - A Rust library for dealing with files and directories
+#### **Examples**
+- First-time sync:
+  ```bash
+  hsync sync -s /path/to/source -d /path/to/destination -i
+  ```
+- Reverse sync:
+  ```bash
+  hsync sync -s /path/to/source -d /path/to/destination -r
+  ```
+- Bidirectional sync:
+  ```bash
+  hsync sync -s /path/to/source -d /path/to/destination -b
+  ```
 
-### License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+---
 
-### Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+### Ignoring Files and Directories
 
-### TODO
+To ignore files or directories from being synced:
+1. Create a file named **`hard_sync.ignore`** in the destination directory.
+2. Add the files or directories to be ignored using the same syntax as a `.gitignore` file.
+
+#### Example of `hard_sync.ignore`:
+```plaintext
+# Ignore all `.tmp` files
+*.tmp
+
+# Ignore a specific folder
+ignore-this-folder/
+
+# Ignore a specific file
+do-not-copy.txt
+```
+
+---
+
+## 📦 **Dependencies**
+
+The following Rust libraries power this project:
+- [**Fli**](https://github.com/codad5/fli): Command-line argument parser similar to `commander.js`
+- [**walkdir**](https://crates.io/crates/walkdir): For recursive directory traversal
+- [**chrono**](https://crates.io/crates/chrono): For date and time management
+- [**fs_extra**](https://crates.io/crates/fs_extra): For advanced file and directory operations
+- [**colored**](https://crates.io/crates/colored): For colorful terminal outputs
+- [**serde**](https://crates.io/crates/serde): For JSON serialization/deserialization
+
+---
+
+## 📄 **License**
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🤝 **Contributing**
+
+Contributions are welcome! If you'd like to contribute:
+1. Fork this repository.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Make your changes and commit them.
+4. Submit a pull request.
+
+For major changes, please open an issue first to discuss your ideas.
+
+---
+
+## 🛠️ **TODO**
 - [x] Add tests
-- [ ] Support ignoring files/directories
-- [ ] Add CI/CD for testing , building and releasing
+- [x] Add support for ignoring specific files/directories
+- [ ] Set up CI/CD for automated testing, building, and releasing
+- [ ] Improve error handling and logging
+- [ ] Add detailed documentation with examples
+
+---
+
+### 🎉 **Thank you for using Hard-Sync-CLI!**
+
+For feedback, suggestions, or issues, feel free to open an issue on GitHub. 😊 
