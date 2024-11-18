@@ -15,6 +15,7 @@ fn main() {
     sync.option("-s --src, <>", "Source Directory", sync_callback);
     sync.option("-d --dest, <>", "Destination Directory", sync_callback);
     sync.option("-i --init", "Initialize the directory", sync_callback);
+    sync.option("-r --reverse", "Initialize the directory", sync_callback);
     sync.allow_duplicate_callback(false);
 
     let mut test = app.command("test", "Test command");
@@ -41,9 +42,10 @@ fn sync_callback(x: &Fli) {
     };
 
     // get path of src and dest
-    let src = Path::new(&src);
-    let dest = Path::new(&dest);
-
+    let (src, dest) = match x.is_passed("reverse".to_owned()) {
+                true => (Path::new(&src), Path::new(&dest)),
+                false => (Path::new(&dest), Path::new(&src))
+    };
     // if the dir does not exist and -n is not passed then create the dir
     if !x.is_passed("-n".to_owned()) {
         if !src.exists() {
