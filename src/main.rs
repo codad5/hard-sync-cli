@@ -11,7 +11,7 @@ use helpers::logger::{print_error, print_info, print_success};
 fn main() {
     println!("{}", "Hard Sync CLI".cyan());
     let mut app = init_fli_from_toml!();
-    let mut sync = app.command("sync", "Syncs 2 directories");
+    let sync = app.command("sync", "Syncs 2 directories");
     sync.option("-s --src, <>", "Source Directory", sync_callback);
     sync.option("-d --dest, <>", "Destination Directory", sync_callback);
     sync.option("-i --init", "Initialize the directory", sync_callback);

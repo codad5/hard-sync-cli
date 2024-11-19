@@ -1,155 +1,149 @@
-# Hard-Sync-CLI 
+# **Hard-Sync-CLI**
 
-**Hard-Sync-CLI** is a simple and efficient command-line tool to sync files between two directories. It is written in **Rust** for speed and reliability. 
-
----
-
-## 🚀 **Why Hard-Sync-CLI?**
-
-I built this project for two main reasons:
-
-1. **Learning Rust**: This project helped me learn Rust through hands-on experience.
-2. **Practical Use**: I needed an easier way to sync files between my laptop and external hard drive (e.g., my movie collection) without the headache of dealing with duplicate file dialogs or manual comparisons.
+**Hard-Sync-CLI** is a fast and lightweight command-line tool for synchronizing two directories, written in **Rust**. It offers powerful features, including support for dry runs, file exclusion, and reverse syncing, making it a practical solution for anyone looking to manage file syncing efficiently.
 
 ---
 
-## 📥 **Installation**
+## **🚀 Why Hard-Sync-CLI?**
 
-### Install From Source
-#### Prerequisites
-- **Rust** (including `cargo`) installed on your system. [Get Rust](https://www.rust-lang.org/tools/install)
+- **Speed and Simplicity**: Written in Rust, ensuring fast and reliable performance.
+- **Customization**: Allows file exclusion and dry-run testing to give you full control.
+- **Learning Project**: Built as a hands-on project to explore Rust programming while solving a real-world problem.
 
-#### Steps
-1. Clone this repository:
+---
+
+## **📥 Installation**
+
+### **Install From Source**
+1. **Prerequisites**: Install Rust and Cargo ([Get Rust](https://www.rust-lang.org/tools/install)).
+2. Clone this repository:
    ```bash
    git clone https://github.com/your-username/hard-sync-cli.git
    cd hard-sync-cli
    ```
-
-2. Install the CLI tool globally using `cargo`:
+3. Install the tool globally:
    ```bash
    cargo install --path .
    ```
-
-3. Run the tool to confirm installation:
+4. Confirm the installation:
    ```bash
    hsync --help
    ```
 
-### Install From Binary
-1. Download the prebuilt binary from the [Releases Page](#) (coming soon).
-2. Add the binary to your system PATH (if needed).
-3. Run the tool:
-   ```bash
-   hsync --help
-   ```
+### **Install From Binary**
+Prebuilt binaries will be available on the [Releases Page](#).
 
 ---
 
-## 💻 **Usage**
+## **💻 Usage**
 
-### General Help
-To see the help message, run:
+### **General Help**
+To display the help message:
 ```bash
 hsync --help
 ```
 
----
+### **Command: `sync`**
+The `sync` command synchronizes files between two directories.
 
-### Syncing Directories
-To sync files between two directories, use the following command:
+#### **Basic Usage**
 ```bash
 hsync sync --src <source_directory> --dest <destination_directory>
 ```
 
-#### **How It Works**
-- **Files in Source Not in Destination**: Copied to the destination directory.
-- **Files in Destination Not in Source**: *Ignored* (not deleted).
-- **Modified Files**: If the source version is newer, it replaces the destination version. Otherwise, no changes occur.
-
-#### **Options for `sync`**
-| **Flag**          | **Short-Hand** | **Description**                                                                 |
+#### **Options**
+| **Option**        | **Short-Hand** | **Description**                                                                 |
 |--------------------|----------------|---------------------------------------------------------------------------------|
-| `--init`          | `-i`           | Initializes Hard-Sync metadata in the destination folder. Required for first-time syncing. |
-| `--reverse`       | `-r`           | Reverses the source and destination directories (syncs in the opposite direction). |
-| `--both`          | `-b`           | Synchronizes both directions (source to destination and destination to source). |
-| `--src <path>`    | `-s <path>`    | Specifies the source directory to sync from.                                    |
-| `--dest <path>`   | `-d <path>`    | Specifies the destination directory to sync to.                                |
+| `--src <path>`    | `-s <path>`    | Source directory to sync from.                                                 |
+| `--dest <path>`   | `-d <path>`    | Destination directory to sync to.                                              |
+| `--init`          | `-i`           | Initialize the destination directory for syncing.                              |
+| `--reverse`       | `-r`           | Reverse the source and destination directories.                                |
+| `--dry-run`       | `-dr`          | Perform a dry run to show what changes would be made without syncing files.    |
+| `--exclude <...>` | `-e <...>`     | Exclude specific files or directories during sync. Supports multiple entries.  |
 
 #### **Examples**
-- First-time sync:
-  ```bash
-  hsync sync -s /path/to/source -d /path/to/destination -i
-  ```
-- Reverse sync:
-  ```bash
-  hsync sync -s /path/to/source -d /path/to/destination -r
-  ```
-- Bidirectional sync:
-  ```bash
-  hsync sync -s /path/to/source -d /path/to/destination -b
-  ```
+1. **First-Time Sync**:
+   ```bash
+   hsync sync -s /path/to/source -d /path/to/destination -i
+   ```
+2. **Dry Run**:
+   ```bash
+   hsync sync -s /path/to/source -d /path/to/destination -dr
+   ```
+3. **Exclude Files**:
+   ```bash
+   hsync sync -s /path/to/source -d /path/to/destination -e "*.tmp" "ignore-this-folder/"
+   ```
+4. **Reverse Sync**:
+   ```bash
+   hsync sync -s /path/to/source -d /path/to/destination -r
+   ```
 
 ---
 
-### Ignoring Files and Directories
+### **Ignoring Files and Directories**
 
-To ignore files or directories from being synced:
-1. Create a file named **`hard_sync.ignore`** in the destination directory.
-2. Add the files or directories to be ignored using the same syntax as a `.gitignore` file.
+You can specify files or directories to exclude from syncing by creating a `hard_sync.ignore` file in the destination directory. The syntax is the same as a `.gitignore` file.
 
-#### Example of `hard_sync.ignore`:
+#### Example `hard_sync.ignore` File:
 ```plaintext
-# Ignore all `.tmp` files
+# Ignore all .tmp files
 *.tmp
 
 # Ignore a specific folder
 ignore-this-folder/
 
 # Ignore a specific file
-do-not-copy.txt
+do-not-sync.txt
 ```
 
 ---
 
-## 📦 **Dependencies**
-
-The following Rust libraries power this project:
-- [**Fli**](https://github.com/codad5/fli): Command-line argument parser similar to `commander.js`
-- [**walkdir**](https://crates.io/crates/walkdir): For recursive directory traversal
-- [**chrono**](https://crates.io/crates/chrono): For date and time management
-- [**fs_extra**](https://crates.io/crates/fs_extra): For advanced file and directory operations
-- [**colored**](https://crates.io/crates/colored): For colorful terminal outputs
-- [**serde**](https://crates.io/crates/serde): For JSON serialization/deserialization
+## **📦 Features**
+- **File Syncing**: Sync files and directories from a source to a destination with support for initialization and reverse syncing.
+- **Dry Run**: Preview changes without applying them.
+- **File Exclusion**: Specify files or directories to exclude using the `--exclude` option or an `hard_sync.ignore` file.
+- **Metadata Initialization**: Use the `--init` flag to set up the destination directory for syncing.
+- **Colorized Output**: Get detailed status information with color-coded messages for errors, successes, and warnings.
 
 ---
 
-## 📄 **License**
+## **🛠️ Advanced Features**
+### **Planned Features**
+- **Bidirectional Syncing**: Synchronize changes in both directions (`source ↔ destination`).
+- **Network Support**: Enable syncing over SSH or SFTP.
+- **Versioning**: Create backups or versions of overwritten files.
+- **Configuration Files**: Support for `.toml` or `.json` configuration files for advanced settings.
+
+---
+
+## **📄 License**
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🤝 **Contributing**
+## **🤝 Contributing**
 
-Contributions are welcome! If you'd like to contribute:
-1. Fork this repository.
-2. Create a new branch (`git checkout -b feature-branch`).
-3. Make your changes and commit them.
-4. Submit a pull request.
+Contributions are welcome! Follow these steps to contribute:
 
-For major changes, please open an issue first to discuss your ideas.
-
----
-
-## 🛠️ **TODO**
-- [x] Add tests
-- [x] Add support for ignoring specific files/directories
-- [ ] Set up CI/CD for automated testing, building, and releasing
-- [ ] Improve error handling and logging
-- [ ] Add detailed documentation with examples
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/your-feature-name`).
+3. Commit your changes (`git commit -m "Add your message"`).
+4. Push to your fork (`git push origin feature/your-feature-name`).
+5. Open a pull request.
 
 ---
 
-### 🎉 **Thank you for using Hard-Sync-CLI!**
+## **📋 To-Do**
+- [x] Add dry-run functionality.
+- [x] Add file exclusion via CLI and ignore files.
+- [ ] Add tests (unit and integration).
+- [ ] Support bidirectional syncing.
+- [ ] Improve error handling and logging.
+- [ ] Provide prebuilt binaries for major platforms.
+- [ ] Add support for syncing over a network.
 
-For feedback, suggestions, or issues, feel free to open an issue on GitHub. 😊 
+---
+
+### 🎉 **Thank You!**
+Enjoy using **Hard-Sync-CLI**! If you encounter any issues, feel free to open an issue on GitHub. 😊
