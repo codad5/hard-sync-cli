@@ -3,7 +3,7 @@ mod controllers;
 use std::{fs, path::Path};
 
 use colored::Colorize;
-use controllers::{dir_tracker::DirTracker, file_tracker::FileTracker};
+use controllers::dir_tracker::DirTracker;
 use fli::{init_fli_from_toml, Fli};
 use helpers::logger::{print_error, print_info, print_success};
 
