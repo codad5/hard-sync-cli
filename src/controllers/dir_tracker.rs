@@ -1,5 +1,5 @@
 use super::file_tracker::FileTracker;
-use std::{collections::HashMap, path::Path};
+use std::{collections::{HashMap, HashSet}, path::Path};
 use regex::Regex;
 use walkdir::WalkDir;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ pub struct DirTracker {
     created: u64,
 
     // dir contents
-    ignore: Vec<String>, // the ignore file is to be placed in the destination directory but refrerencing path relative to the source directory
+    ignore: HashSet<String>, // the ignore file is to be placed in the destination directory but refrerencing path relative to the source directory
     files: HashMap<String, FileTracker>, // Key is the file relative path
 }
 
@@ -32,14 +32,16 @@ impl DirTracker {
         let last_modified = metadata.modified().unwrap().elapsed().unwrap().as_secs();
         let created = metadata.created().unwrap().elapsed().unwrap().as_secs();
 
-        Ok(DirTracker {
+        let mut tracker = DirTracker {
             path,
             size,
             last_modified,
             created,
-            ignore: Vec::new(),
+            ignore: HashSet::from([".hard_sync_cli/*".to_string(), "hard_sync.ignore".to_string()]),
             files: HashMap::new(),
-        })
+        };
+        let _ = tracker.load_ignore();
+        Ok(tracker.clone())
     }
 
     pub fn add_file(&mut self, file: FileTracker) {
@@ -47,7 +49,7 @@ impl DirTracker {
     }
 
     pub fn add_ignore(&mut self, ignore: String) {
-        self.ignore.push(ignore);
+        self.ignore.insert(ignore);
     }
 
 }
@@ -70,7 +72,7 @@ impl DirTracker {
         self.created
     }
 
-    pub fn get_ignore(&self) -> Vec<String> {
+    pub fn get_ignore(&self) -> HashSet<String> {
         self.ignore.clone()
     }
 
@@ -128,11 +130,13 @@ impl DirTracker {
         let mut diff = Vec::new();
         for (key, file) in &self.files {
             if let Some(other_file) = other.files.get(key) {
-                if file.get_last_file_hash() != other_file.get_last_file_hash() {
+                if file.get_last_file_hash() != other_file.get_last_file_hash() && !other.is_ignored(file.get_relative_path(Path::new(&self.get_path()))) {
                     diff.push(file.clone());
                 }
             } else {
-                diff.push(file.clone());
+                if !other.is_ignored(file.get_relative_path(Path::new(&self.get_path()))) {
+                    diff.push(file.clone());
+                }
             }
         }
         diff

@@ -5,7 +5,7 @@ use std::{fs, path::Path};
 use colored::Colorize;
 use controllers::{dir_tracker::DirTracker, file_tracker::FileTracker};
 use fli::{init_fli_from_toml, Fli};
-use helpers::logger::{print_error, print_success, Step};
+use helpers::logger::{print_error, print_info, print_success};
 
 // hard sync cli a cli tool for syncing 2 directories similar to rsync but with a few more features
 fn main() {
@@ -16,6 +16,8 @@ fn main() {
     sync.option("-d --dest, <>", "Destination Directory", sync_callback);
     sync.option("-i --init", "Initialize the directory", sync_callback);
     sync.option("-r --reverse", "Initialize the directory", sync_callback);
+    sync.option("-dr --dry-run", "Dry run", sync_callback);
+    sync.option("-e --exclude, <...>", "Exclude files", sync_callback);
     sync.allow_duplicate_callback(false);
 
     let mut test = app.command("test", "Test command");
@@ -25,6 +27,7 @@ fn main() {
 }
 
 fn sync_callback(x: &Fli) {
+    // get the src and dest path
     let src = match x.get_values("src".to_string()) {
         Ok(v) => v.first().unwrap().clone(),
         Err(e) => {
@@ -36,28 +39,28 @@ fn sync_callback(x: &Fli) {
     let dest = match x.get_values("dest".to_string()) {
         Ok(v) => v.first().unwrap().clone(),
         Err(e) => {
-            print_error(&e);
+            print_error(format!("Destination directory not provided: {}", e).as_str());
             return;
         }
     };
 
-    // get path of src and dest
+    // get path of src and dest as Path and check if reverse is passed
     let (src, dest) = match !x.is_passed("reverse".to_owned()) {
                 true => (Path::new(&src), Path::new(&dest)),
                 false => (Path::new(&dest), Path::new(&src))
     };
-    // if the dir does not exist and -n is not passed then create the dir
-    if !x.is_passed("-n".to_owned()) {
-        if !src.exists() {
-            print_error(format!("Source directory {:?} does not exist", src).as_str());
-            return;
-        }
-
-        if !dest.exists() {
-            print_error("Destination directory does not exist");
-            return;
-        }
+    
+    // check if src and dest exists
+    if !src.exists() {
+        print_error(format!("Source directory {:?} does not exist", src).as_str());
+        return;
     }
+
+    if !dest.exists() {
+        print_error("Destination directory does not exist");
+        return;
+    }
+    
 
     // check if path are same 
     if src == dest {
@@ -66,7 +69,6 @@ fn sync_callback(x: &Fli) {
     }
     
 
-    Step::Syncing(format!("Syncing {:?} to {:?}", src, dest)).print();
     let mut src_dir = DirTracker::new(src).unwrap();
     let mut dest_dir = DirTracker::new(dest).unwrap();
 
@@ -75,7 +77,6 @@ fn sync_callback(x: &Fli) {
             print_error("Dest directory is not initialized pass -i to initailise it.");
             return;
         }
-        Step::Start("Setting up source directory".to_string()).print();
         match dest_dir.setup_dir_config() {
             Ok(_) => {
                 print_success("Source directory initialized");
@@ -87,12 +88,25 @@ fn sync_callback(x: &Fli) {
         }
     }
 
-    Step::Start("Loading Diff".to_string()).print();
     src_dir.import_files_from_directory(true);
     dest_dir.import_files_from_directory(true);
+
+    if x.is_passed("-e".to_owned()) {
+        let exclude = x.get_values("exclude".to_owned()).unwrap();
+        for file in exclude {
+            dest_dir.add_ignore(file);
+        }
+    }
+
+    // get the diff (files that are in src but not in dest)
     let diff = src_dir.get_dir_diff(&dest_dir);
     if diff.len() == 0 {
         print_success("No diff found");
+    }
+    
+    // warn about dry running turned on
+    if x.is_passed("-dr".to_owned()) {
+        print_info("Dry run turned on");
     }
     let mut ignore_count = 0;
     for file in &diff {
@@ -101,29 +115,28 @@ fn sync_callback(x: &Fli) {
             None => "New".green(),
         };
         println!(
-            "{} file path: {}",
-            status,
-            file.get_relative_path(Path::new(&src_dir.get_path()))
+            "{} ({})",
+            file.get_relative_path(Path::new(&src_dir.get_path())),
+            status.underline()
         );
         // copy the file
         let dest_file = dest.join(file.get_relative_path(Path::new(&src_dir.get_path())));
         if dest_dir.load_ignore().is_ok() && dest_dir.is_ignored( &file.get_relative_path(Path::new(&src_dir.get_path()))) {
-            // Step::Ignored(format!("Ignoring file {:?}", file.get_relative_path(Path::new(&src_dir.get_path())))).print();
             ignore_count+=1;
             continue;
         }
-        Step::Copying((
-            file.get_path().to_string(),
-            dest_file.to_str().unwrap().to_string(),
-        )).print();
-        if !dest_file.parent().unwrap().exists() {
-            fs::create_dir_all(dest_file.parent().unwrap()).unwrap();
+        // to implement dry run
+        if !x.is_passed("-dr".to_owned()) {
+            if !dest_file.parent().unwrap().exists() {
+                fs::create_dir_all(dest_file.parent().unwrap()).unwrap();
+            }
+            fs::copy(file.get_path(), dest_file.clone()).unwrap();
         }
-        fs::copy(file.get_path(), dest_file.clone()).unwrap();
-        Step::Completed(format!("Copied file to {:?}", dest_file)).print();
     }
+    println!("");
     print_success(format!("{} files copied", format!("{}", diff.len() - ignore_count).blue()).as_str());
     print_success(format!("{} files ignored", format!("{}", ignore_count).red()).as_str());
+    print_info(format!("All ignored files patterns: {:?}", dest_dir.get_ignore()).as_str());
 
 }
 
