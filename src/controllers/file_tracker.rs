@@ -28,7 +28,7 @@ impl FileTracker {
         let content = fs::read(path)?;
 
         let last_modified = metadata.modified()?.duration_since(UNIX_EPOCH).unwrap().as_secs();
-        let created = metadata.created()?.duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let created = metadata.created().unwrap_or(UNIX_EPOCH).duration_since(UNIX_EPOCH).unwrap().as_secs();
         let last_accessed = metadata.accessed()?.duration_since(UNIX_EPOCH).unwrap().as_secs();
 
 

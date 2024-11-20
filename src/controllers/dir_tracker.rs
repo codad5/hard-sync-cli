@@ -30,7 +30,7 @@ impl DirTracker {
         let path = path.to_str().unwrap().to_string();
         let size = metadata.len();
         let last_modified = metadata.modified().unwrap().elapsed().unwrap().as_secs();
-        let created = metadata.created().unwrap().elapsed().unwrap().as_secs();
+        let created = metadata.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH).elapsed().unwrap().as_secs();
 
         let mut tracker = DirTracker {
             path,
